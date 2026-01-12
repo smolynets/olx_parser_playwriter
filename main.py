@@ -28,7 +28,7 @@ email_app_password = os.getenv("EMAIL_APP_PASSWORD")
 
 def send_html_email(email_subject, to_email, from_email, email_app_password, records):
     prices = [r["Вартість одного квадрату"] for r in records if r.get("Вартість одного квадрату") is not None]
-    price_per_square_average = sum(prices) / len(prices) if prices else 0
+    price_per_square_average = round(sum(prices) / len(prices)) if prices else 0
     ads_count = len(records)
     email_html_body = f"""
     <html>
