@@ -26,6 +26,7 @@ to_email = "smolynets@gmail.com"
 from_email = "smolynets2@gmail.com"
 email_app_password = os.getenv("EMAIL_APP_PASSWORD")
 
+
 def send_html_email(email_subject, to_email, from_email, email_app_password, records):
     prices = [r["Вартість одного квадрату"] for r in records if r.get("Вартість одного квадрату") is not None]
     price_per_square_average = round(sum(prices) / len(prices)) if prices else 0
@@ -135,8 +136,9 @@ def extract_location_and_date(card):
 def get_price(card):
     price_tag = card.select_one('[data-testid="ad-price"]')
     if price_tag:
-        price_text = price_tag.get_text(strip=True)  # "48 000 $"
-        price = int(price_text.replace(" ", "").replace("$", ""))
+        price_text = price_tag.get_text(strip=True)
+        digits_price = re.findall(r"\d+", price_text)
+        price = int("".join(digits_price))
     else:
         price = None
     return price
@@ -196,10 +198,10 @@ def getch_olx_data():
                 break
             
             ##
-            html = page.content()
+            # html = page.content()
 
-            with open("olx_page.html", "w", encoding="utf-8") as f:
-                f.write(html)
+            # with open("olx_page.html", "w", encoding="utf-8") as f:
+            #     f.write(html)
             ##
 
             soup = BeautifulSoup(page.content(), "html.parser")
