@@ -22,12 +22,13 @@ mail_subject = "Test HTML Email"
 smtp_server = 'smtp.gmail.com'
 smtp_port = 587
 
+
 to_email = os.getenv("TO_EMAIL")
 from_email = os.getenv("FROM_EMAIL")
 email_app_password = os.getenv("EMAIL_APP_PASSWORD")
 
-
 def send_html_email(email_subject, to_email, from_email, email_app_password, records):
+    to_email = to_email.split(",")
     prices = [r["Вартість одного квадрату"] for r in records if r.get("Вартість одного квадрату") is not None]
     price_per_square_average = round(sum(prices) / len(prices)) if prices else 0
     ads_count = len(records)
@@ -62,7 +63,7 @@ def send_html_email(email_subject, to_email, from_email, email_app_password, rec
     # Create the MIME message
     message = MIMEMultipart()
     message['From'] = from_email
-    message['To'] = to_email
+    message['To'] = ", ".join(to_email)
     message['Subject'] = email_subject
 
     # Attach the HTML body with UTF-8 encoding
@@ -161,6 +162,7 @@ def getch_olx_data():
     all_ads = []
 
     with sync_playwright() as p:
+        time.sleep(random.uniform(35, 333))
         browser = p.chromium.launch(
             headless=True,
             args=[
