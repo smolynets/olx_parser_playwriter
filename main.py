@@ -22,8 +22,8 @@ mail_subject = "Test HTML Email"
 smtp_server = 'smtp.gmail.com'
 smtp_port = 587
 
-to_email = "smolynets@gmail.com"
-from_email = "smolynets2@gmail.com"
+to_email = os.getenv("TO_EMAIL")
+from_email = os.getenv("FROM_EMAIL")
 email_app_password = os.getenv("EMAIL_APP_PASSWORD")
 
 
