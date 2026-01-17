@@ -1,5 +1,6 @@
 import os
 import re
+import math
 import time
 import random
 from datetime import datetime, timedelta
@@ -136,12 +137,19 @@ def extract_location_and_date(card):
 
 def get_price(card):
     price_tag = card.select_one('[data-testid="ad-price"]')
-    if price_tag:
-        price_text = price_tag.get_text(strip=True)
-        digits_price = re.findall(r"\d+", price_text)
-        price = int("".join(digits_price))
-    else:
-        price = None
+    if not price_tag:
+        return None
+
+    price_text = price_tag.get_text(strip=True)
+
+    # забираємо все, крім цифр і крапки
+    cleaned = re.sub(r"[^\d.]", "", price_text)
+
+    try:
+        price = math.floor(float(cleaned))
+    except ValueError:
+        return None
+
     return price
 
 
