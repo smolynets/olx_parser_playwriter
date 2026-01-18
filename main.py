@@ -30,7 +30,11 @@ email_app_password = os.getenv("EMAIL_APP_PASSWORD")
 
 def send_html_email(email_subject, to_email, from_email, email_app_password, records):
     to_email = to_email.split(",")
-    prices = [r["Вартість одного квадрату"] for r in records if r.get("Вартість одного квадрату") is not None]
+    prices = [
+        ad["Вартість одного квадрату"]
+        for ad in all_ads.values()
+        if "Вартість одного квадрату" in ad and ad["Вартість одного квадрату"] is not None
+    ]
     price_per_square_average = round(sum(prices) / len(prices)) if prices else 0
     ads_count = len(records)
     email_html_body = f"""
@@ -42,17 +46,17 @@ def send_html_email(email_subject, to_email, from_email, email_app_password, rec
     <ul>
     """
 
-    for record in records:
-        email_html_body += f"<li><strong>{record["Заголовок"]}</strong></li>\n"
-        email_html_body += (
-            f"<li>"
-            f"<a href=\"{record['Фото']}\">{record['Фото']}</a>"
-            f"</li>\n"
-        )
-        email_html_body += f"<li><strong>Ціна - {record["Ціна"]}</strong></li>\n"
-        email_html_body += f"<li><strong>Посилання - {record["Посилання"]}</strong></li>\n"
-        email_html_body += f"<li><strong>Площа - {record["Площа"]}</strong></li>\n"
-        email_html_body += f"<li><strong>Вартість одного квадрату - {record["Вартість одного квадрату"]}</strong></li>\n"
+    for k, v in records.items():
+        email_html_body += f"<li><strong>Заголовок - {v["Заголовок"]}</strong></li>\n"
+        email_html_body += f"<li><strong>Посилання - {k}</strong></li>\n"
+        # email_html_body += (
+        #     f"<li>"
+        #     f"<a href=\"{v['Фото']}\">{v['Фото']}</a>"
+        #     f"</li>\n"
+        # )
+        email_html_body += f"<li><strong>Ціна - {v["Ціна"]}</strong></li>\n"
+        email_html_body += f"<li><strong>Площа - {v["Площа"]}</strong></li>\n"
+        email_html_body += f"<li><strong>Вартість одного квадрату - {v["Вартість одного квадрату"]}</strong></li>\n"
         email_html_body += "<li>----------------------------</li>\n"
         email_html_body += "<br>"
     email_html_body += """
@@ -167,10 +171,9 @@ def getch_olx_data():
     )
 
     prev_day_str = get_prev_day_str().lower()
-    all_ads = []
+    ads = {}
 
     with sync_playwright() as p:
-        time.sleep(random.uniform(35, 333))
         browser = p.chromium.launch(
             headless=True,
             args=[
@@ -272,22 +275,20 @@ def getch_olx_data():
                 price_per_squere = round(price / size_int) if price and size_int else None
                 if price < 20000:
                     continue
+                full_link = f"https://www.olx.ua{link['href']}" if link else "Посилання не знайдено"
                 ad = {
                     "Заголовок": title if title else "Заголовок не знайдено",
-                    "Фото": photo_url if photo_url else "",
                     "Ціна": price if price else "Ціна не знайдена",
-                    "Посилання": f"https://www.olx.ua{link['href']}" if link else "Посилання не знайдено",
                     "Площа": size_text,
                     "Вартість одного квадрату": price_per_squere if price_per_squere else None,
                 }
-
-                all_ads.append(ad)
+                ads[full_link] = ad
 
             if not found_yesterday:
                 break
 
             page_num += 1
-            time.sleep(random.uniform(67, 133))
+            time.sleep(random.randint(67, 133))
 
             ###
             # if page_num == 3:
@@ -296,13 +297,20 @@ def getch_olx_data():
 
         browser.close()
 
-    return all_ads
+    return ads
 
 
 if __name__ == "__main__":
-    ads = []
-    ads = getch_olx_data()
-    print(f"\nЗнайдено {len(ads)} оголошень:")
-    for ad in ads:
-        print(ad)
-    send_html_email("Test olx", to_email, from_email, email_app_password, ads)
+    all_ads = {}
+    for step in range(random.randint(2, 3)):
+        time.sleep(random.randint(351, 733))
+        step += 1
+        print(f"Step number {step}")
+        ads = getch_olx_data()
+        for full_link, ad_data in ads.items():
+            if full_link not in all_ads:
+                all_ads[full_link] = ad_data
+    print(f"\nЗнайдено {len(all_ads)} оголошень:")
+    for k, v in all_ads.items():
+        print(f"{k}---{v}")
+    send_html_email("Test olx", to_email, from_email, email_app_password, all_ads)
