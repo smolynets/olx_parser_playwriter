@@ -28,6 +28,9 @@ to_email = os.getenv("TO_EMAIL")
 from_email = os.getenv("FROM_EMAIL")
 email_app_password = os.getenv("EMAIL_APP_PASSWORD")
 
+
+# helpers
+
 def send_html_email(email_subject, to_email, from_email, email_app_password, records):
     to_email = to_email.split(",")
     prices = [
@@ -157,11 +160,103 @@ def get_price(card):
     return price
 
 
+# Playwright factory
+
+def create_stealth_page(headless=True):
+    ua = UserAgent()
+    p = sync_playwright().start()
+
+    browser = p.chromium.launch(
+        headless=headless,
+        args=[
+            "--disable-blink-features=AutomationControlled",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+        ]
+    )
+
+    context = browser.new_context(
+        user_agent=ua.random,
+        locale="uk-UA",
+        viewport={"width": 1366, "height": 768},
+    )
+
+    page = context.new_page()
+    stealth_sync(page)
+
+    return p, browser, page
+
+
+def load_page(page, url, wait_selector=None):
+    print(f"Завантаження: {url}")
+    page.goto(url, timeout=60000)
+    page.wait_for_timeout(random.randint(2500, 4500))
+
+    if wait_selector:
+        page.wait_for_selector(wait_selector, timeout=15000)
+
+    return page.content()
+
+
+# Parsers
+
+def parse_listing_page(html, prev_day_str):
+    soup = BeautifulSoup(html, "html.parser")
+    cards = soup.find_all("div", {"data-cy": "l-card"})
+
+    ads = {}
+    found_yesterday = False
+
+    for card in cards:
+        # дата
+        date_text = ""
+        for p in card.find_all("p"):
+            if prev_day_str in p.text.lower():
+                date_text = p.text.strip()
+                break
+
+        if prev_day_str not in date_text:
+            continue
+
+        # пропускаємо ТОП
+        if card.find("div", string=lambda t: t and t.strip().lower() == "топ"):
+            continue
+
+        found_yesterday = True
+
+        price = get_price(card)
+        if not price or price < 20000:
+            continue
+
+        title = extract_title(card)
+        link = card.find("a", href=True)
+        full_link = f"https://www.olx.ua{link['href']}" if link else None
+
+        size_text = "Площа не знайдена"
+        for span in card.find_all("span"):
+            text = span.get_text(strip=True)
+            if "м²" in text:
+                size_text = text
+                break
+
+        try:
+            size_int = int(float(size_text.split()[0]))
+        except:
+            size_int = None
+
+        price_per_square = round(price / size_int) if size_int else None
+
+        ads[full_link] = {
+            "Заголовок": title,
+            "Ціна": price,
+            "Площа": size_text,
+            "Вартість одного квадрату": price_per_square,
+        }
+
+    return ads, found_yesterday
+
 
 def getch_olx_data():
-    ua = UserAgent()
-    user_agent = ua.random
-
     base_url = (
         "https://www.olx.ua/uk/nedvizhimost/kvartiry/"
         "prodazha-kvartir/lvov/"
@@ -170,119 +265,23 @@ def getch_olx_data():
         "&search%5Border%5D=created_at%3Adesc"
     )
 
-    prev_day_str = get_prev_day_str().lower()
-    ads = {}
+    prev_day_str = get_prev_day_str()
+    all_ads = {}
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(
-            headless=True,
-            args=[
-                "--disable-blink-features=AutomationControlled",
-                "--no-sandbox",
-                "--disable-dev-shm-usage",
-            ]
-        )
+    p, browser, page = create_stealth_page(headless=True)
 
-        context = browser.new_context(
-            user_agent=user_agent,
-            locale="uk-UA",
-            viewport={"width": 1366, "height": 768},
-        )
-
-        page = context.new_page()
-
-        stealth_sync(page)
-
-        page_num = 1
-
+    page_num = 1
+    try:
         while True:
-            # real work
-            ###########
             url = base_url if page_num == 1 else f"{base_url}&page={page_num}"
-            print(f"Завантаження сторінки: {url}")
 
-            page.goto(url, timeout=60000)
-            page.wait_for_timeout(random.randint(2500, 4500))
+            html = load_page(page, url, 'div[data-cy="l-card"]')
+            ads, found_yesterday = parse_listing_page(html, prev_day_str)
 
-            try:
-                page.wait_for_selector('div[data-cy="l-card"]', timeout=15000)
-            except:
-                print("Оголошення не завантажились")
-                break
-            
-            ##
-            # html = page.content()
-
-            # with open("olx_page.html", "w", encoding="utf-8") as f:
-            #     f.write(html)
-            ##
-
-            soup = BeautifulSoup(page.content(), "html.parser")
-            ############
-            # local work
-            ###################
-            # with open("olx_page.html", "r", encoding="utf-8") as f:
-            #     html = f.read()
-
-            # soup = BeautifulSoup(html, "html.parser")
-            ################
-
-            cards = soup.find_all("div", {"data-cy": "l-card"})
-            if not cards:
+            if not ads:
                 break
 
-            found_yesterday = False
-
-            cards_n = len(cards)
-            print(f"number_of_cards_{cards_n}")
-
-            for card in cards:
-                date_text = ""
-
-                p_tags = card.find_all("p")
-                for p in p_tags:
-                    if prev_day_str in p.text:
-                        date_text = p.text.strip()
-                        break
-                
-                if prev_day_str not in date_text:
-                    continue
-
-                # miss "ТОП"
-                if card.find("div", string=lambda t: t and t.strip().lower() == "топ"):
-                    continue
-
-                found_yesterday = True
-
-                title = card.find("h4")
-                
-                # get price
-                price = get_price(card)
-
-                link = card.find("a", href=True)
-                
-                size_text = "Площа не знайдена"
-                for span in card.find_all("span"):
-                    text = span.get_text(strip=True)
-                    if "м²" in text:
-                        size_text = text
-                        break
-                
-                title = extract_title(card)
-                photo_url = extract_main_photo(card)
-                location, _ = extract_location_and_date(card)
-                size_int = int(float(size_text.split()[0]))
-                price_per_squere = round(price / size_int) if price and size_int else None
-                if price < 20000:
-                    continue
-                full_link = f"https://www.olx.ua{link['href']}" if link else "Посилання не знайдено"
-                ad = {
-                    "Заголовок": title if title else "Заголовок не знайдено",
-                    "Ціна": price if price else "Ціна не знайдена",
-                    "Площа": size_text,
-                    "Вартість одного квадрату": price_per_squere if price_per_squere else None,
-                }
-                ads[full_link] = ad
+            all_ads.update(ads)
 
             if not found_yesterday:
                 break
@@ -290,14 +289,11 @@ def getch_olx_data():
             page_num += 1
             time.sleep(random.randint(67, 133))
 
-            ###
-            # if page_num == 3:
-            #     break
-            ###
-
+    finally:
         browser.close()
+        p.stop()
 
-    return ads
+    return all_ads
 
 
 if __name__ == "__main__":
