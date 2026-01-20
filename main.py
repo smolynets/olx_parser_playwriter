@@ -35,7 +35,7 @@ def send_html_email(email_subject, to_email, from_email, email_app_password, rec
     to_email = to_email.split(",")
     prices = [
         ad["Вартість одного квадрату"]
-        for ad in all_ads.values()
+        for ad in records.values()
         if "Вартість одного квадрату" in ad and ad["Вартість одного квадрату"] is not None
     ]
     price_per_square_average = round(sum(prices) / len(prices)) if prices else 0
@@ -162,10 +162,9 @@ def get_price(card):
 
 # Playwright factory
 
-def create_stealth_page(headless=True):
+def create_stealth_context(headless=True):
     ua = UserAgent()
     p = sync_playwright().start()
-
     browser = p.chromium.launch(
         headless=headless,
         args=[
@@ -174,17 +173,12 @@ def create_stealth_page(headless=True):
             "--disable-dev-shm-usage",
         ]
     )
-
     context = browser.new_context(
         user_agent=ua.random,
         locale="uk-UA",
         viewport={"width": 1366, "height": 768},
     )
-
-    page = context.new_page()
-    stealth_sync(page)
-
-    return p, browser, page
+    return p, browser, context
 
 
 def load_page(page, url, wait_selector=None):
@@ -256,7 +250,30 @@ def parse_listing_page(html, prev_day_str):
     return ads, found_yesterday
 
 
-def getch_olx_data():
+def getch_olx_data(all_steps_ads, base_url, context):
+    prev_day_str = get_prev_day_str()
+    page_num = 1
+    while True:
+        # create page obj for main page
+        list_page = context.new_page()
+        stealth_sync(list_page)
+        # create url for each page number
+        url = base_url if page_num == 1 else f"{base_url}&page={page_num}"
+        html = load_page(list_page, url, 'div[data-cy="l-card"]')
+        ads, found_yesterday = parse_listing_page(html, prev_day_str)
+        for full_link, ad_data in ads.items():
+            if full_link not in all_steps_ads:
+                all_steps_ads[full_link] = ad_data
+        if not ads:
+            break
+        if not found_yesterday:
+            break
+        page_num += 1
+        time.sleep(random.randint(67, 133))
+
+
+if __name__ == "__main__":
+    start = time.perf_counter()
     base_url = (
         "https://www.olx.ua/uk/nedvizhimost/kvartiry/"
         "prodazha-kvartir/lvov/"
@@ -264,49 +281,21 @@ def getch_olx_data():
         "&search%5Bfilter_float_price%3Ato%5D=50000"
         "&search%5Border%5D=created_at%3Adesc"
     )
-
-    prev_day_str = get_prev_day_str()
-    all_ads = {}
-
-    p, browser, page = create_stealth_page(headless=True)
-
-    page_num = 1
+    all_steps_ads = {}
+    p, browser, context = create_stealth_context(headless=True)
     try:
-        while True:
-            url = base_url if page_num == 1 else f"{base_url}&page={page_num}"
-
-            html = load_page(page, url, 'div[data-cy="l-card"]')
-            ads, found_yesterday = parse_listing_page(html, prev_day_str)
-
-            if not ads:
-                break
-
-            all_ads.update(ads)
-
-            if not found_yesterday:
-                break
-
-            page_num += 1
-            time.sleep(random.randint(67, 133))
-
+        for step in range(random.randint(2, 3)):
+            time.sleep(random.randint(20, 55))
+            step += 1
+            print(f"Step number {step}")
+            getch_olx_data(all_steps_ads, base_url, context)
     finally:
         browser.close()
         p.stop()
-
-    return all_ads
-
-
-if __name__ == "__main__":
-    all_ads = {}
-    for step in range(random.randint(2, 3)):
-        time.sleep(random.randint(351, 733))
-        step += 1
-        print(f"Step number {step}")
-        ads = getch_olx_data()
-        for full_link, ad_data in ads.items():
-            if full_link not in all_ads:
-                all_ads[full_link] = ad_data
-    print(f"\nЗнайдено {len(all_ads)} оголошень:")
-    for k, v in all_ads.items():
+    print(f"\nЗнайдено {len(all_steps_ads)} оголошень:")
+    for k, v in all_steps_ads.items():
         print(f"{k}---{v}")
-    send_html_email("Test olx", to_email, from_email, email_app_password, all_ads)
+    send_html_email("Test olx", to_email, from_email, email_app_password, all_steps_ads)
+    # calculate spended time
+    end = time.perf_counter()
+    print(f"Час виконання: {end - start:.3f} сек")
