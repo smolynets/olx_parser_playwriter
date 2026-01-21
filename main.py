@@ -60,6 +60,7 @@ def send_html_email(email_subject, to_email, from_email, email_app_password, rec
         email_html_body += f"<li><strong>Ціна - {v["Ціна"]}</strong></li>\n"
         email_html_body += f"<li><strong>Площа - {v["Площа"]}</strong></li>\n"
         email_html_body += f"<li><strong>Вартість одного квадрату - {v["Вартість одного квадрату"]}</strong></li>\n"
+        email_html_body += f"<li><strong>Опис - {v["Опис"]}</strong></li>\n"
         email_html_body += "<li>----------------------------</li>\n"
         email_html_body += "<br>"
     email_html_body += """
@@ -202,7 +203,7 @@ def parse_listing_page(html, prev_day_str):
     found_yesterday = False
 
     for card in cards:
-        # дата
+        # date
         date_text = ""
         for p in card.find_all("p"):
             if prev_day_str in p.text.lower():
@@ -212,7 +213,7 @@ def parse_listing_page(html, prev_day_str):
         if prev_day_str not in date_text:
             continue
 
-        # пропускаємо ТОП
+        # miss "ТОП"
         if card.find("div", string=lambda t: t and t.strip().lower() == "топ"):
             continue
 
@@ -250,6 +251,22 @@ def parse_listing_page(html, prev_day_str):
     return ads, found_yesterday
 
 
+def parse_detailed_description(html):
+    soup = BeautifulSoup(html, "html.parser")
+    
+    # OLX description container
+    desc_tag = soup.find("div", {"data-cy": "ad_description"})
+    
+    # fallback: if data-cy dont work, take the biggest <div> with text
+    if not desc_tag:
+        all_divs = soup.find_all("div")
+        desc_tag = max(all_divs, key=lambda d: len(d.get_text(strip=True) or ""))
+    
+    description = desc_tag.get_text(separator="\n", strip=True) if desc_tag else "Опис не знайдено"
+    
+    return description
+
+
 def getch_olx_data(all_steps_ads, base_url, context):
     prev_day_str = get_prev_day_str()
     page_num = 1
@@ -263,6 +280,14 @@ def getch_olx_data(all_steps_ads, base_url, context):
         ads, found_yesterday = parse_listing_page(html, prev_day_str)
         for full_link, ad_data in ads.items():
             if full_link not in all_steps_ads:
+                time.sleep(random.randint(33, 128))
+                # create detailed page
+                detailed_page = context.new_page()
+                stealth_sync(detailed_page)
+                html = load_page(detailed_page, full_link, 'body')
+                description = parse_detailed_description(html)
+                # add to main dict
+                ad_data["Опис"] = description
                 all_steps_ads[full_link] = ad_data
         if not ads:
             break
@@ -285,7 +310,7 @@ if __name__ == "__main__":
     p, browser, context = create_stealth_context(headless=True)
     try:
         for step in range(random.randint(2, 3)):
-            time.sleep(random.randint(123, 755))
+            time.sleep(random.randint(100, 873))
             step += 1
             print(f"Step number {step}")
             getch_olx_data(all_steps_ads, base_url, context)
