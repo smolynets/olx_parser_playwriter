@@ -62,11 +62,11 @@ def send_html_email(email_subject, to_email, from_email, email_app_password, rec
         email_html_body += f"<li><strong>Площа - {v["Площа"]}</strong></li>\n"
         email_html_body += f"<li><strong>Вартість одного квадрату - {v["Вартість одного квадрату"]}</strong></li>\n"
         email_html_body += f"<li><strong>Опис - {v["Опис"]}</strong></li>\n"
-        # email_html_body += f"<li><strong>Вид об'єкта - {v["Вид об'єкта"]}</strong></li>\n"
-        # email_html_body += f"<li><strong>Поверх - {v["Поверх"]}</strong></li>\n"
-        # email_html_body += f"<li><strong>Поверховість - {v["Поверховість"]}</strong></li>\n"
-        # email_html_body += f"<li><strong>Опалення - {v["Опалення"]}</strong></li>\n"
-        # email_html_body += f"<li><strong>Клас житла - {v["Клас житла"]}</strong></li>\n"
+        email_html_body += f"<li><strong>Вид об'єкта - {v["Вид об'єкта"]}</strong></li>\n"
+        email_html_body += f"<li><strong>Поверх - {v["Поверх"]}</strong></li>\n"
+        email_html_body += f"<li><strong>Поверховість - {v["Поверховість"]}</strong></li>\n"
+        email_html_body += f"<li><strong>Опалення - {v["Опалення"]}</strong></li>\n"
+        email_html_body += f"<li><strong>Клас житла - {v["Клас житла"]}</strong></li>\n"
         email_html_body += "<li>----------------------------</li>\n"
         email_html_body += "<br>"
     email_html_body += """
@@ -260,9 +260,10 @@ def parse_olx_parameters(container):
     params = {}
     if not container:
         return params
-    for item in container.find_all("p"):
+    # Create new list with elements
+    items = list(container.find_all("p"))
+    for item in items:
         text = item.get_text(strip=True)
-        # miss titles without ":"
         if ":" in text:
             key, value = map(str.strip, text.split(":", 1))
             params[key] = value
@@ -274,11 +275,9 @@ def parse_detailed(html):
     ld = soup.find("script", type="application/ld+json")
     if not ld:
         return {}
-
     data = json.loads(ld.string)
     container = soup.find(attrs={"data-testid": "ad-parameters-container"})
-    # param_tags = parse_olx_parameters(container) # todo: real func call is empty
-
+    param_tags = parse_olx_parameters(container)
     return {
         "Заголовок": data.get("name"),
         "Опис": data.get("description"),
@@ -287,11 +286,11 @@ def parse_detailed(html):
         "Район": data.get("offers", {}).get("areaServed", {}).get("name"),
         "Фото": data.get("image", []),
         "URL": data.get("url"),
-        # "Вид об'єкта": param_tags.get("Вид об'єкта"),
-        # "Поверх": param_tags.get("Поверх"),
-        # "Поверховість": param_tags.get("Поверховість"),
-        # "Опалення": param_tags.get("Опалення"),
-        # "Клас житла": param_tags.get("Клас житла"),
+        "Вид об'єкта": param_tags.get("Вид об'єкта"),
+        "Поверх": param_tags.get("Поверх"),
+        "Поверховість": param_tags.get("Поверховість"),
+        "Опалення": param_tags.get("Опалення"),
+        "Клас житла": param_tags.get("Клас житла"),
     }
 
 
@@ -320,11 +319,11 @@ def getch_olx_data(all_steps_ads, base_url, context):
                 details = parse_detailed(html)
                 # add to main dict
                 ad_data["Опис"] = f'{" ".join(details["Опис"].split()[:5])}...'
-                # ad_data["Вид об'єкта"] = details["Вид об'єкта"]
-                # ad_data["Поверх"] = details["Поверх"]
-                # ad_data["Поверховість"] = details["Поверховість"]
-                # ad_data["Опалення"] = details["Опалення"]
-                # ad_data["Клас житла"] = details["Клас житла"]
+                ad_data["Вид об'єкта"] = details["Вид об'єкта"]
+                ad_data["Поверх"] = details["Поверх"]
+                ad_data["Поверховість"] = details["Поверховість"]
+                ad_data["Опалення"] = details["Опалення"]
+                ad_data["Клас житла"] = details["Клас житла"]
                 all_steps_ads[full_link] = ad_data
         if not ads:
             break
