@@ -1,4 +1,5 @@
 import os
+import json
 import re
 import math
 import time
@@ -61,6 +62,11 @@ def send_html_email(email_subject, to_email, from_email, email_app_password, rec
         email_html_body += f"<li><strong>Площа - {v["Площа"]}</strong></li>\n"
         email_html_body += f"<li><strong>Вартість одного квадрату - {v["Вартість одного квадрату"]}</strong></li>\n"
         email_html_body += f"<li><strong>Опис - {v["Опис"]}</strong></li>\n"
+        # email_html_body += f"<li><strong>Вид об'єкта - {v["Вид об'єкта"]}</strong></li>\n"
+        # email_html_body += f"<li><strong>Поверх - {v["Поверх"]}</strong></li>\n"
+        # email_html_body += f"<li><strong>Поверховість - {v["Поверховість"]}</strong></li>\n"
+        # email_html_body += f"<li><strong>Опалення - {v["Опалення"]}</strong></li>\n"
+        # email_html_body += f"<li><strong>Клас житла - {v["Клас житла"]}</strong></li>\n"
         email_html_body += "<li>----------------------------</li>\n"
         email_html_body += "<br>"
     email_html_body += """
@@ -247,24 +253,47 @@ def parse_listing_page(html, prev_day_str):
             "Площа": size_text,
             "Вартість одного квадрату": price_per_square,
         }
-
     return ads, found_yesterday
 
 
-def parse_detailed_description(html):
+def parse_olx_parameters(container):
+    params = {}
+    if not container:
+        return params
+    for item in container.find_all("p"):
+        text = item.get_text(strip=True)
+        # miss titles without ":"
+        if ":" in text:
+            key, value = map(str.strip, text.split(":", 1))
+            params[key] = value
+    return params
+
+
+def parse_detailed(html):
     soup = BeautifulSoup(html, "html.parser")
-    
-    # OLX description container
-    desc_tag = soup.find("div", {"data-cy": "ad_description"})
-    
-    # fallback: if data-cy dont work, take the biggest <div> with text
-    if not desc_tag:
-        all_divs = soup.find_all("div")
-        desc_tag = max(all_divs, key=lambda d: len(d.get_text(strip=True) or ""))
-    
-    description = desc_tag.get_text(separator="\n", strip=True) if desc_tag else "Опис не знайдено"
-    
-    return description
+    ld = soup.find("script", type="application/ld+json")
+    if not ld:
+        return {}
+
+    data = json.loads(ld.string)
+    container = soup.find(attrs={"data-testid": "ad-parameters-container"})
+    # param_tags = parse_olx_parameters(container) # todo: real func call is empty
+
+    return {
+        "Заголовок": data.get("name"),
+        "Опис": data.get("description"),
+        "Ціна": data.get("offers", {}).get("price"),
+        "Валюта": data.get("offers", {}).get("priceCurrency"),
+        "Район": data.get("offers", {}).get("areaServed", {}).get("name"),
+        "Фото": data.get("image", []),
+        "URL": data.get("url"),
+        # "Вид об'єкта": param_tags.get("Вид об'єкта"),
+        # "Поверх": param_tags.get("Поверх"),
+        # "Поверховість": param_tags.get("Поверховість"),
+        # "Опалення": param_tags.get("Опалення"),
+        # "Клас житла": param_tags.get("Клас житла"),
+    }
+
 
 
 def getch_olx_data(all_steps_ads, base_url, context):
@@ -284,10 +313,18 @@ def getch_olx_data(all_steps_ads, base_url, context):
                 # create detailed page
                 detailed_page = context.new_page()
                 stealth_sync(detailed_page)
-                html = load_page(detailed_page, full_link, 'body')
-                description = parse_detailed_description(html)
+                print(f"Завантаження: {full_link}")
+                detailed_page.goto(full_link, timeout=60000)
+                detailed_page.wait_for_timeout(8000)
+                html = detailed_page.content()
+                details = parse_detailed(html)
                 # add to main dict
-                ad_data["Опис"] = description
+                ad_data["Опис"] = f'{" ".join(details["Опис"].split()[:5])}...'
+                # ad_data["Вид об'єкта"] = details["Вид об'єкта"]
+                # ad_data["Поверх"] = details["Поверх"]
+                # ad_data["Поверховість"] = details["Поверховість"]
+                # ad_data["Опалення"] = details["Опалення"]
+                # ad_data["Клас житла"] = details["Клас житла"]
                 all_steps_ads[full_link] = ad_data
         if not ads:
             break
