@@ -62,11 +62,11 @@ def send_html_email(email_subject, to_email, from_email, email_app_password, rec
         email_html_body += f"<li><strong>Площа - {v["Площа"]}</strong></li>\n"
         email_html_body += f"<li><strong>Вартість одного квадрату - {v["Вартість одного квадрату"]}</strong></li>\n"
         email_html_body += f"<li><strong>Опис - {v["Опис"]}</strong></li>\n"
-        email_html_body += f"<li><strong>Вид об'єкта - {v["Вид об'єкта"]}</strong></li>\n"
-        email_html_body += f"<li><strong>Поверх - {v["Поверх"]}</strong></li>\n"
-        email_html_body += f"<li><strong>Поверховість - {v["Поверховість"]}</strong></li>\n"
-        email_html_body += f"<li><strong>Опалення - {v["Опалення"]}</strong></li>\n"
-        email_html_body += f"<li><strong>Клас житла - {v["Клас житла"]}</strong></li>\n"
+        # email_html_body += f"<li><strong>Вид об'єкта - {v["Вид об'єкта"]}</strong></li>\n"
+        # email_html_body += f"<li><strong>Поверх - {v["Поверх"]}</strong></li>\n"
+        # email_html_body += f"<li><strong>Поверховість - {v["Поверховість"]}</strong></li>\n"
+        # email_html_body += f"<li><strong>Опалення - {v["Опалення"]}</strong></li>\n"
+        # email_html_body += f"<li><strong>Клас житла - {v["Клас житла"]}</strong></li>\n"
         email_html_body += "<li>----------------------------</li>\n"
         email_html_body += "<br>"
     email_html_body += """
@@ -103,25 +103,11 @@ def get_prev_day_str():
 def extract_title(card):
     for a in card.find_all("a", href=True):
         href = a["href"]
-
         if href.startswith("/d/uk/obyavlenie/"):
             title = a.get_text(strip=True)
             if title:
                 return title
-
     return None
-
-
-def extract_main_photo(card):
-    img = card.find("img", src=True)
-    if img and "no_thumbnail" not in img["src"]:
-        return img["src"]
-    if img and img.get("srcset"):
-        srcset_url = img["srcset"].split()[0]
-        if "no_thumbnail" not in srcset_url:
-            return srcset_url
-    return None
-
 
 
 def extract_location_and_date(card):
@@ -129,23 +115,17 @@ def extract_location_and_date(card):
         span = p.find("span")
         if not span:
             continue
-
         date_text = span.get_text(strip=True)
-
         if "р." not in date_text:
             continue
-
         from bs4 import NavigableString
         location_parts = [
             t.strip()
             for t in p.contents
             if isinstance(t, NavigableString) and t.strip()
         ]
-
         location_text = location_parts[0] if location_parts else None
-
         return location_text, date_text
-
     return None, None
 
 
@@ -153,22 +133,17 @@ def get_price(card):
     price_tag = card.select_one('[data-testid="ad-price"]')
     if not price_tag:
         return None
-
     price_text = price_tag.get_text(strip=True)
-
-    # забираємо все, крім цифр і крапки
+    # get all exceot digits
     cleaned = re.sub(r"[^\d.]", "", price_text)
-
     try:
         price = math.floor(float(cleaned))
     except ValueError:
         return None
-
     return price
 
 
 # Playwright factory
-
 def create_stealth_context(headless=True):
     ua = UserAgent()
     p = sync_playwright().start()
@@ -192,7 +167,6 @@ def load_page(page, url, wait_selector=None):
     print(f"Завантаження: {url}")
     page.goto(url, timeout=60000)
     page.wait_for_timeout(random.randint(2500, 4500))
-
     if wait_selector:
         page.wait_for_selector(wait_selector, timeout=15000)
 
@@ -200,14 +174,11 @@ def load_page(page, url, wait_selector=None):
 
 
 # Parsers
-
 def parse_listing_page(html, prev_day_str):
     soup = BeautifulSoup(html, "html.parser")
     cards = soup.find_all("div", {"data-cy": "l-card"})
-
     ads = {}
     found_yesterday = False
-
     for card in cards:
         # date
         date_text = ""
@@ -215,38 +186,29 @@ def parse_listing_page(html, prev_day_str):
             if prev_day_str in p.text.lower():
                 date_text = p.text.strip()
                 break
-
         if prev_day_str not in date_text:
             continue
-
         # miss "ТОП"
         if card.find("div", string=lambda t: t and t.strip().lower() == "топ"):
             continue
-
         found_yesterday = True
-
         price = get_price(card)
         if not price or price < 20000:
             continue
-
         title = extract_title(card)
         link = card.find("a", href=True)
         full_link = f"https://www.olx.ua{link['href']}" if link else None
-
         size_text = "Площа не знайдена"
         for span in card.find_all("span"):
             text = span.get_text(strip=True)
             if "м²" in text:
                 size_text = text
                 break
-
         try:
             size_int = int(float(size_text.split()[0]))
         except:
             size_int = None
-
         price_per_square = round(price / size_int) if size_int else None
-
         ads[full_link] = {
             "Заголовок": title,
             "Ціна": price,
@@ -256,18 +218,18 @@ def parse_listing_page(html, prev_day_str):
     return ads, found_yesterday
 
 
-def parse_olx_parameters(container):
-    params = {}
-    if not container:
-        return params
-    # Create new list with elements
-    items = list(container.find_all("p"))
-    for item in items:
-        text = item.get_text(strip=True)
-        if ":" in text:
-            key, value = map(str.strip, text.split(":", 1))
-            params[key] = value
-    return params
+# def parse_olx_parameters(container):
+#     params = {}
+#     if not container:
+#         return params
+#     # Create new list with elements
+#     items = list(container.find_all("p"))
+#     for item in items:
+#         text = item.get_text(strip=True)
+#         if ":" in text:
+#             key, value = map(str.strip, text.split(":", 1))
+#             params[key] = value
+#     return params
 
 
 def parse_detailed(html):
@@ -277,7 +239,7 @@ def parse_detailed(html):
         return {}
     data = json.loads(ld.string)
     container = soup.find(attrs={"data-testid": "ad-parameters-container"})
-    param_tags = parse_olx_parameters(container)
+    # param_tags = parse_olx_parameters(container)
     return {
         "Заголовок": data.get("name"),
         "Опис": data.get("description"),
@@ -286,11 +248,11 @@ def parse_detailed(html):
         "Район": data.get("offers", {}).get("areaServed", {}).get("name"),
         "Фото": data.get("image", []),
         "URL": data.get("url"),
-        "Вид об'єкта": param_tags.get("Вид об'єкта"),
-        "Поверх": param_tags.get("Поверх"),
-        "Поверховість": param_tags.get("Поверховість"),
-        "Опалення": param_tags.get("Опалення"),
-        "Клас житла": param_tags.get("Клас житла"),
+        # "Вид об'єкта": param_tags.get("Вид об'єкта"),
+        # "Поверх": param_tags.get("Поверх"),
+        # "Поверховість": param_tags.get("Поверховість"),
+        # "Опалення": param_tags.get("Опалення"),
+        # "Клас житла": param_tags.get("Клас житла"),
     }
 
 
@@ -308,7 +270,7 @@ def getch_olx_data(all_steps_ads, base_url, context):
         ads, found_yesterday = parse_listing_page(html, prev_day_str)
         for full_link, ad_data in ads.items():
             if full_link not in all_steps_ads:
-                time.sleep(random.randint(33, 128))
+                time.sleep(random.randint(330, 728))
                 # create detailed page
                 detailed_page = context.new_page()
                 stealth_sync(detailed_page)
@@ -345,8 +307,8 @@ if __name__ == "__main__":
     all_steps_ads = {}
     p, browser, context = create_stealth_context(headless=True)
     try:
-        for step in range(random.randint(2, 3)):
-            time.sleep(random.randint(100, 873))
+        for step in range(random.randint(1, 2)):
+            time.sleep(random.randint(11, 86))
             step += 1
             print(f"Step number {step}")
             getch_olx_data(all_steps_ads, base_url, context)
@@ -360,3 +322,13 @@ if __name__ == "__main__":
     # calculate spended time
     end = time.perf_counter()
     print(f"Час виконання: {end - start:.3f} сек")
+
+
+    #TODO:
+    # from simhash import Simhash
+
+    # def simhash_text(text):
+    #     norm = normalize_text(text)
+    #     return Simhash(norm).value
+
+    # posible usage - abs(hash1 - hash2) < 10
