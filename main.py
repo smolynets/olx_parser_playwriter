@@ -307,8 +307,8 @@ if __name__ == "__main__":
     all_steps_ads = {}
     p, browser, context = create_stealth_context(headless=True)
     try:
-        for step in range(random.randint(1, 2)):
-            time.sleep(random.randint(11, 86))
+        for step in range(random.randint(2, 3)):
+            time.sleep(random.randint(111, 786))
             step += 1
             print(f"Step number {step}")
             getch_olx_data(all_steps_ads, base_url, context)
