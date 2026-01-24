@@ -281,11 +281,11 @@ def getch_olx_data(all_steps_ads, base_url, context):
                 details = parse_detailed(html)
                 # add to main dict
                 ad_data["Опис"] = f'{" ".join(details["Опис"].split()[:5])}...'
-                ad_data["Вид об'єкта"] = details["Вид об'єкта"]
-                ad_data["Поверх"] = details["Поверх"]
-                ad_data["Поверховість"] = details["Поверховість"]
-                ad_data["Опалення"] = details["Опалення"]
-                ad_data["Клас житла"] = details["Клас житла"]
+                # ad_data["Вид об'єкта"] = details["Вид об'єкта"]
+                # ad_data["Поверх"] = details["Поверх"]
+                # ad_data["Поверховість"] = details["Поверховість"]
+                # ad_data["Опалення"] = details["Опалення"]
+                # ad_data["Клас житла"] = details["Клас житла"]
                 all_steps_ads[full_link] = ad_data
         if not ads:
             break
