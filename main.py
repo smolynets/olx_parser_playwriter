@@ -15,7 +15,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-from datetime import datetime
+from settings import settings
 
 current_date = datetime.now()
 
@@ -25,15 +25,15 @@ smtp_server = 'smtp.gmail.com'
 smtp_port = 587
 
 
-to_email = os.getenv("TO_EMAIL")
-from_email = os.getenv("FROM_EMAIL")
-email_app_password = os.getenv("EMAIL_APP_PASSWORD")
+# to_email = os.getenv("TO_EMAIL")
+# from_email = os.getenv("FROM_EMAIL")
+# email_app_password = os.getenv("EMAIL_APP_PASSWORD")
 
 
 # helpers
 
-def send_html_email(email_subject, to_email, from_email, email_app_password, records):
-    to_email = to_email.split(",")
+def send_html_email(email_subject, records):
+    to_email = settings.to_email.split(",")
     prices = [
         ad["Вартість одного квадрату"]
         for ad in records.values()
@@ -77,7 +77,7 @@ def send_html_email(email_subject, to_email, from_email, email_app_password, rec
 
     # Create the MIME message
     message = MIMEMultipart()
-    message['From'] = from_email
+    message['From'] = settings.from_email
     message['To'] = ", ".join(to_email)
     message['Subject'] = email_subject
 
@@ -87,7 +87,7 @@ def send_html_email(email_subject, to_email, from_email, email_app_password, rec
     # Send the email
     with smtplib.SMTP(smtp_server, smtp_port) as server:
         server.starttls()  # Start TLS Encryption
-        server.login(from_email, email_app_password)
+        server.login(from_email, settings.email_app_password)
         server.send_message(message)  # Use send_message to automatically handle encodings
 
 
@@ -311,7 +311,7 @@ if __name__ == "__main__":
     print(f"\nЗнайдено {len(all_steps_ads)} оголошень:")
     for k, v in all_steps_ads.items():
         print(f"{k}---{v}")
-    send_html_email("Test olx", to_email, from_email, email_app_password, all_steps_ads)
+    send_html_email("Test olx", all_steps_ads)
     # calculate spended time
     end = time.perf_counter()
     print(f"Час виконання: {end - start:.3f} сек")
