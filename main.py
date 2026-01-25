@@ -87,7 +87,7 @@ def send_html_email(email_subject, records):
     # Send the email
     with smtplib.SMTP(smtp_server, smtp_port) as server:
         server.starttls()  # Start TLS Encryption
-        server.login(from_email, settings.email_app_password)
+        server.login(settings.from_email, settings.email_app_password)
         server.send_message(message)  # Use send_message to automatically handle encodings
 
 
