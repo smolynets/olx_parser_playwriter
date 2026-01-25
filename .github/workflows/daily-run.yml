@@ -29,7 +29,6 @@ jobs:
     # 1️⃣ first run
     - name: Run script (first attempt)
       id: first_run
-      continue-on-error: true
       env:
         EMAIL_APP_PASSWORD: ${{ secrets.EMAIL_APP_PASSWORD }}
         TO_EMAIL: ${{ secrets.TO_EMAIL }}
@@ -38,12 +37,12 @@ jobs:
 
     # 2️⃣ wait 6 mins, only if fail
     - name: Wait 6 minutes before retry
-      if: steps.first_run.outcome == 'failure'
+      if: failure()
       run: sleep 360
 
     # 3️⃣ second run
     - name: Run script (retry)
-      if: steps.first_run.outcome == 'failure'
+      if: failure()
       env:
         EMAIL_APP_PASSWORD: ${{ secrets.EMAIL_APP_PASSWORD }}
         TO_EMAIL: ${{ secrets.TO_EMAIL }}
