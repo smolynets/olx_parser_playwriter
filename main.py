@@ -51,6 +51,8 @@ def send_html_email(email_subject, records):
     """
     for k, v in records.items():
         short_desc = f'{" ".join(v["Опис"].split()[:5])}...'
+        email_html_body += f"<li><strong>Опис - {short_desc}</strong></li>\n"
+        email_html_body += f"<li><strong>Посилання - {k}</strong></li>\n"
         for v_k, v_v in v.items():
             if v_k != "Опис":
                 email_html_body += f"<li><strong>{v_k} - {v_v}</strong></li>\n"
