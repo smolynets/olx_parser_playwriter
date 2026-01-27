@@ -250,6 +250,11 @@ def getch_olx_data(all_steps_ads, base_url, context):
                 stealth_sync(detailed_page)
                 print(f"Завантаження: {full_link}")
                 detailed_page.goto(full_link, timeout=60000)
+                detailed_page.wait_for_selector(
+                    '[data-testid="ad-parameters-container"]',
+                    timeout=30000,
+                    state="attached"
+                )
                 html = detailed_page.content()
                 details = parse_detailed(html)
                 # add to main dict
