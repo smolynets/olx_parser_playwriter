@@ -240,6 +240,11 @@ def getch_olx_data(all_steps_ads, base_url, context):
         stealth_sync(list_page)
         # create url for each page number
         url = base_url if page_num == 1 else f"{base_url}&page={page_num}"
+        list_page.wait_for_selector(
+                    'div[data-cy="l-card"]"]',
+                    timeout=30000,
+                    state="attached"
+                )
         html = load_page(list_page, url, 'div[data-cy="l-card"]')
         ads, found_yesterday = parse_listing_page(html, prev_day_str)
         for full_link, ad_data in ads.items():

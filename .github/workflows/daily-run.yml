@@ -38,7 +38,7 @@ jobs:
     # 2️⃣ wait 6 mins, only if fail
     - name: Wait 6 minutes before retry
       if: failure()
-      run: sleep 360
+      run: sleep 3600
 
     # 3️⃣ second run
     - name: Run script (retry)
