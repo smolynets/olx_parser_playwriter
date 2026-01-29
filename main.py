@@ -240,6 +240,7 @@ def getch_olx_data(all_steps_ads, base_url, context):
         stealth_sync(list_page)
         # create url for each page number
         url = base_url if page_num == 1 else f"{base_url}&page={page_num}"
+        time.sleep(random.randint(120, 180))
         list_page.wait_for_selector(
             'div[data-cy="l-card"]',
             timeout=30000,
