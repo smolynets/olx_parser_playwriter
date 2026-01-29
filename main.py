@@ -169,13 +169,10 @@ def parse_listing_page(html, prev_day_str):
     ads = {}
     found_yesterday = False
     for card in cards:
-        # date
-        date_text = ""
-        for p in card.find_all("p"):
-            if prev_day_str in p.text.lower():
-                date_text = p.text.strip()
-                break
-        if prev_day_str not in date_text:
+        if not any(
+            prev_day_str.lower() in p.get_text(strip=True).lower()
+            for p in card.find_all("p")
+        ):
             continue
         # miss "ТОП"
         if card.find("div", string=lambda t: t and t.strip().lower() == "топ"):
@@ -230,6 +227,33 @@ def parse_detailed(html):
     return data
 
 
+def is_olx_blocked(html: str) -> bool:
+    html_l = html.lower()
+
+    # HTML so small - antibot
+    if len(html) < 50_000:
+        print("239########")
+        return True
+
+    # no cards
+    if "data-cy=\"l-card\"" not in html:
+        print("244########")
+        return True
+
+    # blocking signals
+    anti_signals = [
+        "please verify you are a human",
+        "access denied",
+        "unusual traffic",
+        "check your browser before accessing",
+    ]
+    if any(signal in html_l for signal in anti_signals):
+        print("255########")
+        return True
+    print("257########")
+    return False
+
+
 
 def getch_olx_data(all_steps_ads, base_url, context):
     prev_day_str = get_prev_day_str()
@@ -240,13 +264,28 @@ def getch_olx_data(all_steps_ads, base_url, context):
         stealth_sync(list_page)
         # create url for each page number
         url = base_url if page_num == 1 else f"{base_url}&page={page_num}"
-        time.sleep(random.randint(120, 180))
-        list_page.wait_for_selector(
-            'div[data-cy="l-card"]',
-            timeout=30000,
-            state="attached"
-        )
-        html = load_page(list_page, url, 'div[data-cy="l-card"]')
+        ####
+        # slow human start
+        time.sleep(random.randint(120, 153))
+
+        list_page.goto(url, wait_until="domcontentloaded", timeout=60000)
+        list_page.wait_for_timeout(3000)
+
+        # minimal scroll for rendering
+        list_page.mouse.wheel(0, 800)
+        list_page.wait_for_timeout(2000)
+
+        html = list_page.content()
+
+        # logs for debaging
+        print("HTML size:", len(html))
+        print("l-card count:", html.count('data-cy="l-card"'))
+        print("Blocked?", is_olx_blocked(html))
+
+        if is_olx_blocked(html):
+            list_page.close()
+            raise RuntimeError("OLX anti-bot / empty listing page detected")
+        ######
         ads, found_yesterday = parse_listing_page(html, prev_day_str)
         for full_link, ad_data in ads.items():
             if full_link not in all_steps_ads:
