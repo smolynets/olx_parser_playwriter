@@ -1,5 +1,6 @@
 import os
 import json
+import hashlib
 import re
 import math
 import time
@@ -23,11 +24,6 @@ current_date = datetime.now()
 mail_subject = "Test HTML Email"
 smtp_server = 'smtp.gmail.com'
 smtp_port = 587
-
-
-# to_email = os.getenv("TO_EMAIL")
-# from_email = os.getenv("FROM_EMAIL")
-# email_app_password = os.getenv("EMAIL_APP_PASSWORD")
 
 
 # helpers
@@ -132,6 +128,17 @@ def get_price(card):
     return price
 
 
+def normalize_description_text(text: str) -> str:
+    text = text.lower()
+    text = re.sub(r'\s+', '', text)
+    text = re.sub(r'[^\wа-я0-9]', '', text)
+    return text
+
+def get_text_hash(text: str) -> str:
+    norm = normalize_description_text(text)
+    return hashlib.sha256(norm.encode("utf-8")).hexdigest()
+
+
 # Playwright factory
 def create_stealth_context(headless=True):
     ua = UserAgent()
@@ -150,16 +157,6 @@ def create_stealth_context(headless=True):
         viewport={"width": 1366, "height": 768},
     )
     return p, browser, context
-
-
-# def load_page(page, url, wait_selector=None):
-#     print(f"Завантаження: {url}")
-#     page.goto(url, timeout=60000)
-#     page.wait_for_timeout(random.randint(2500, 4500))
-#     if wait_selector:
-#         page.wait_for_selector(wait_selector, timeout=15000)
-
-#     return page.content()
 
 
 # Parsers
@@ -302,8 +299,10 @@ def getch_olx_data(all_steps_ads, base_url, context):
                 # )
                 html = detailed_page.content()
                 details = parse_detailed(html)
+                hash_obj = get_text_hash(details.get("description"))
                 # add to main dict
                 ad_data["Опис"] = details.get("description")
+                ad_data["Хеш опису"] = hash_obj
                 ad_data["Вид об'єкта"] = details.get("Вид об'єкта")
                 ad_data["Поверх"] = details.get("Поверх")
                 ad_data["Поверховість"] = details.get("Поверховість")
@@ -348,13 +347,3 @@ if __name__ == "__main__":
     # calculate spended time
     end = time.perf_counter()
     print(f"Час виконання: {end - start:.3f} сек")
-
-
-    #TODO:
-    # from simhash import Simhash
-
-    # def simhash_text(text):
-    #     norm = normalize_text(text)
-    #     return Simhash(norm).value
-
-    # posible usage - abs(hash1 - hash2) < 10
