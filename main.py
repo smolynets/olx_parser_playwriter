@@ -19,6 +19,8 @@ from email.mime.multipart import MIMEMultipart
 from settings import settings
 
 current_date = datetime.now()
+current_hour = current_date.strftime("%H")
+week_day = datetime.now().weekday()
 
 
 mail_subject = "Test HTML Email"
@@ -321,29 +323,42 @@ def getch_olx_data(all_steps_ads, base_url, context):
 
 
 if __name__ == "__main__":
-    start = time.perf_counter()
-    base_url = (
-        "https://www.olx.ua/uk/nedvizhimost/kvartiry/"
-        "prodazha-kvartir/lvov/"
-        "?currency=USD"
-        "&search%5Bfilter_float_price%3Ato%5D=50000"
-        "&search%5Border%5D=created_at%3Adesc"
-    )
-    all_steps_ads = {}
-    p, browser, context = create_stealth_context(headless=True)
-    try:
-        for step in range(random.randint(2, 3)):
-            time.sleep(random.randint(111, 786))
-            step += 1
-            print(f"Step number {step}")
-            getch_olx_data(all_steps_ads, base_url, context)
-    finally:
-        browser.close()
-        p.stop()
-    print(f"\nЗнайдено {len(all_steps_ads)} оголошень:")
-    for k, v in all_steps_ads.items():
-        print(f"{k}---{v}")
-    send_html_email("Test olx", all_steps_ads)
-    # calculate spended time
-    end = time.perf_counter()
-    print(f"Час виконання: {end - start:.3f} сек")
+    SCHEDULE = {
+        0: '10',
+        1: '09',
+        2: '08',
+        3: '09',
+        4: '10',
+        5: '09',
+        6: '08',
+    }
+    allowed_hour = SCHEDULE.get(week_day)
+    if current_hour == str(allowed_hour):
+        start = time.perf_counter()
+        base_url = (
+            "https://www.olx.ua/uk/nedvizhimost/kvartiry/"
+            "prodazha-kvartir/lvov/"
+            "?currency=USD"
+            "&search%5Bfilter_float_price%3Ato%5D=50000"
+            "&search%5Border%5D=created_at%3Adesc"
+        )
+        all_steps_ads = {}
+        p, browser, context = create_stealth_context(headless=True)
+        try:
+            for step in range(random.randint(2, 3)):
+                time.sleep(random.randint(111, 786))
+                step += 1
+                print(f"Step number {step}")
+                getch_olx_data(all_steps_ads, base_url, context)
+        finally:
+            browser.close()
+            p.stop()
+        print(f"\nЗнайдено {len(all_steps_ads)} оголошень:")
+        for k, v in all_steps_ads.items():
+            print(f"{k}---{v}")
+        send_html_email("Test olx", all_steps_ads)
+        # calculate spended time
+        end = time.perf_counter()
+        print(f"Час виконання: {end - start:.3f} сек")
+    else:
+        print("Поточна година недозволена для виконання")
