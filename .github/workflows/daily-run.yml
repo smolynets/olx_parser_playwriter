@@ -21,10 +21,15 @@ jobs:
       with:
         python-version: '3.12'
 
+    - name: Install Poetry
+      run: |
+        pip install poetry
+
     - name: Install dependencies
       run: |
-        pip install -r requirements.txt
-        python -m playwright install --with-deps
+        poetry install --no-interaction --no-root
+        poetry run playwright install chromium
+
 
     # 1️⃣ first run
     - name: Run script (first attempt)
@@ -33,7 +38,7 @@ jobs:
         EMAIL_APP_PASSWORD: ${{ secrets.EMAIL_APP_PASSWORD }}
         TO_EMAIL: ${{ secrets.TO_EMAIL }}
         FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
-      run: python main.py
+      run: poetry run python main.py
 
     # 2️⃣ wait 6 mins, only if fail
     - name: Wait 6 minutes before retry
@@ -47,4 +52,4 @@ jobs:
         EMAIL_APP_PASSWORD: ${{ secrets.EMAIL_APP_PASSWORD }}
         TO_EMAIL: ${{ secrets.TO_EMAIL }}
         FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
-      run: python main.py
+      run: poetry run python main.py
