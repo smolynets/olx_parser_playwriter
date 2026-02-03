@@ -339,7 +339,7 @@ def getch_olx_data(all_steps_ads, base_url, context):
                 all_steps_ads[full_link] = ad_data
                 list_page.close()
                 detailed_page.close()
-                is_duplicate = get_update_mongo_atlas(ad_data)
+                is_duplicate = get_update_mongo_atlas(full_link, ad_data)
                 if is_duplicate:
                     ad_data["!!! Ймовірний дублікат"] = is_duplicate
                     item_duplicates = True
