@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     to_email: str
     from_email: str
     email_app_password: str
+    mongo_url: str
 
     model_config = SettingsConfigDict(
         env_file=".env",

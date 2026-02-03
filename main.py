@@ -5,7 +5,7 @@ import re
 import math
 import time
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
@@ -17,6 +17,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 from settings import settings
+from mongo_atlas import OlxAdsRepository
+
 
 current_date = datetime.now()
 current_hour = current_date.strftime("%H")
@@ -26,6 +28,11 @@ week_day = datetime.now().weekday()
 mail_subject = "Test HTML Email"
 smtp_server = 'smtp.gmail.com'
 smtp_port = 587
+
+mongo_repo = OlxAdsRepository(mongo_uri=settings.mongo_url)
+
+
+item_duplicates = False
 
 
 # helpers
@@ -39,12 +46,14 @@ def send_html_email(email_subject, records):
     ]
     price_per_square_average = round(sum(prices) / len(prices)) if prices else 0
     ads_count = len(records)
+    is_some_duplicated = "Є йомвірні дублікати" if item_duplicates else None
     email_html_body = f"""
     <html>
     <body>
     <h1>{current_date.strftime("%d %B")} - OLX python parser</h1>
     <h2> Кількість оголошень - {ads_count}</h2>
     <h3> Середня вартість кв. метра - {price_per_square_average}</h3>
+    <h4>{is_some_duplicated}</h4>
     <ul>
     """
     for k, v in records.items():
@@ -76,6 +85,22 @@ def send_html_email(email_subject, records):
         server.starttls()  # Start TLS Encryption
         server.login(settings.from_email, settings.email_app_password)
         server.send_message(message)  # Use send_message to automatically handle encodings
+
+
+def get_update_mongo_atlas(link: str, value: dict):
+    ads_hash = value["Хеш опису"]
+    ads = mongo_repo.get_ad_by_hash(ads_hash)
+    if not ads:
+        doc = {
+            "ads_hash": ads_hash,
+            "ads_link": link,
+            "description": value["Опис"],
+            "created_at": datetime.now(timezone.utc)
+        }
+        mongo_repo.upsert_ad(doc)
+    else:
+        if ads["created_at"].date() != current_date.date():
+            return ads["ads_link"]
 
 
 def get_prev_day_str():
@@ -314,6 +339,10 @@ def getch_olx_data(all_steps_ads, base_url, context):
                 all_steps_ads[full_link] = ad_data
                 list_page.close()
                 detailed_page.close()
+                is_duplicate = get_update_mongo_atlas(ad_data)
+                if is_duplicate:
+                    ad_data["!!! Ймовірний дублікат"] = is_duplicate
+                    item_duplicates = True
         if not ads:
             break
         if not found_yesterday:
@@ -333,32 +362,32 @@ if __name__ == "__main__":
         6: '08',
     }
     allowed_hour = SCHEDULE.get(week_day)
-    if current_hour == str(allowed_hour):
-        start = time.perf_counter()
-        base_url = (
-            "https://www.olx.ua/uk/nedvizhimost/kvartiry/"
-            "prodazha-kvartir/lvov/"
-            "?currency=USD"
-            "&search%5Bfilter_float_price%3Ato%5D=50000"
-            "&search%5Border%5D=created_at%3Adesc"
-        )
-        all_steps_ads = {}
-        p, browser, context = create_stealth_context(headless=True)
-        try:
-            for step in range(random.randint(2, 3)):
-                time.sleep(random.randint(111, 786))
-                step += 1
-                print(f"Step number {step}")
-                getch_olx_data(all_steps_ads, base_url, context)
-        finally:
-            browser.close()
-            p.stop()
-        print(f"\nЗнайдено {len(all_steps_ads)} оголошень:")
-        for k, v in all_steps_ads.items():
-            print(f"{k}---{v}")
-        send_html_email("Test olx", all_steps_ads)
-        # calculate spended time
-        end = time.perf_counter()
-        print(f"Час виконання: {end - start:.3f} сек")
-    else:
-        print("Поточна година недозволена для виконання")
+    # if current_hour == str(allowed_hour):
+    start = time.perf_counter()
+    base_url = (
+        "https://www.olx.ua/uk/nedvizhimost/kvartiry/"
+        "prodazha-kvartir/lvov/"
+        "?currency=USD"
+        "&search%5Bfilter_float_price%3Ato%5D=50000"
+        "&search%5Border%5D=created_at%3Adesc"
+    )
+    all_steps_ads = {}
+    p, browser, context = create_stealth_context(headless=True)
+    try:
+        for step in range(random.randint(1, 1)):
+            time.sleep(random.randint(1, 2))
+            step += 1
+            print(f"Step number {step}")
+            getch_olx_data(all_steps_ads, base_url, context)
+    finally:
+        browser.close()
+        p.stop()
+    print(f"\nЗнайдено {len(all_steps_ads)} оголошень:")
+    for k, v in all_steps_ads.items():
+        print(f"{k}---{v}")
+    send_html_email("Test olx", all_steps_ads)
+    # calculate spended time
+    end = time.perf_counter()
+    print(f"Час виконання: {end - start:.3f} сек")
+    # else:
+    #     print("Поточна година недозволена для виконання")
