@@ -98,8 +98,11 @@ def get_update_mongo_atlas(link: str, value: dict):
             "created_at": datetime.now(timezone.utc)
         }
         mongo_repo.upsert_ad(doc)
+        print(f"Added - {doc}")
     else:
+        print(f"{ads_hash} exists")
         if ads["created_at"].date() != current_date.date():
+            print(f"{ads_hash} today added")
             return ads["ads_link"]
 
 
