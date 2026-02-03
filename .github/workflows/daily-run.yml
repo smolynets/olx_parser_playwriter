@@ -40,6 +40,7 @@ jobs:
         EMAIL_APP_PASSWORD: ${{ secrets.EMAIL_APP_PASSWORD }}
         TO_EMAIL: ${{ secrets.TO_EMAIL }}
         FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+        mongo_url: ${{ secrets.mongo_url }}
       run: poetry run python main.py
 
     # 2️⃣ wait 6 mins, only if fail
