@@ -44,7 +44,7 @@ def send_html_email(email_subject, records):
     price_per_square_average = round(sum(prices) / len(prices)) if prices else 0
     ads_count = len(records)
     has_probable_duplicate = any(
-        "Ймовірний дублікат" in ad
+        "!!! Ймовірний дублікат" in ad
         for ad in records.values()
     )
     is_some_duplicated = "!!!!!! Є йомвірні дублікати" if has_probable_duplicate else "Немає дублікатів"
