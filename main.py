@@ -32,9 +32,6 @@ smtp_port = 587
 mongo_repo = OlxAdsRepository(mongo_uri=settings.mongo_url)
 
 
-item_duplicates = False
-
-
 # helpers
 
 def send_html_email(email_subject, records):
@@ -46,7 +43,11 @@ def send_html_email(email_subject, records):
     ]
     price_per_square_average = round(sum(prices) / len(prices)) if prices else 0
     ads_count = len(records)
-    is_some_duplicated = "Є йомвірні дублікати" if item_duplicates else None
+    has_probable_duplicate = any(
+        "Ймовірний дублікат" in ad
+        for ad in records.values()
+    )
+    is_some_duplicated = "!!!!!! Є йомвірні дублікати" if has_probable_duplicate else "Немає дублікатів"
     email_html_body = f"""
     <html>
     <body>
@@ -345,7 +346,6 @@ def getch_olx_data(all_steps_ads, base_url, context):
                 is_duplicate = get_update_mongo_atlas(full_link, ad_data)
                 if is_duplicate:
                     ad_data["!!! Ймовірний дублікат"] = is_duplicate
-                    item_duplicates = True
         if not ads:
             break
         if not found_yesterday:
