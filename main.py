@@ -47,7 +47,7 @@ def send_html_email(email_subject, records):
         "!!! Ймовірний дублікат" in ad
         for ad in records.values()
     )
-    is_some_duplicated = "!!!!!! Є йомвірні дублікати" if has_probable_duplicate else "Немає дублікатів"
+    is_some_duplicated = "!!!!!! Є ймовірні дублікати" if has_probable_duplicate else "Немає дублікатів"
     email_html_body = f"""
     <html>
     <body>
