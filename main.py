@@ -43,11 +43,11 @@ def send_html_email(email_subject, records):
     ]
     price_per_square_average = round(sum(prices) / len(prices)) if prices else 0
     ads_count = len(records)
-    has_probable_duplicate = any(
+    duplicates_count = sum(
         "!!! Ймовірний дублікат" in ad
         for ad in records.values()
     )
-    is_some_duplicated = "!!!!!! Є ймовірні дублікати" if has_probable_duplicate else "Немає дублікатів"
+    is_some_duplicated = f"!!!!!! Є ймовірні дублікати - {duplicates_count}" if duplicates_count else "Немає дублікатів"
     email_html_body = f"""
     <html>
     <body>
@@ -199,6 +199,11 @@ def parse_listing_page(html, prev_day_str):
     for card in cards:
         if not any(
             prev_day_str.lower() in p.get_text(strip=True).lower()
+            for p in card.find_all("p")
+        ):
+            continue
+        if any(
+            "сьогодні " in p.get_text(strip=True).lower()
             for p in card.find_all("p")
         ):
             continue
