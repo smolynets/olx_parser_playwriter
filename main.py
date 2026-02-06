@@ -323,6 +323,8 @@ def getch_olx_data(all_steps_ads, base_url, context):
         ######
         ads, found_yesterday = parse_listing_page(html, prev_day_str)
         for full_link, ad_data in ads.items():
+            # get clean url without params
+            full_link = url.split(".html")[0] + ".html"
             if full_link not in all_steps_ads:
                 time.sleep(random.randint(65, 153))
                 # create detailed page
