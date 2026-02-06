@@ -344,20 +344,21 @@ def getch_olx_data(all_steps_ads, base_url, context):
                 details = parse_detailed(html)
                 hash_obj = get_text_hash(details.get("description"))
                 # add to main dict
-                ad_data["Опис"] = details.get("description")
-                ad_data["Хеш опису"] = hash_obj
-                ad_data["Вид об'єкта"] = details.get("Вид об'єкта")
-                ad_data["Поверх"] = details.get("Поверх")
-                ad_data["Поверховість"] = details.get("Поверховість")
-                ad_data["Опалення"] = details.get("Опалення")
-                ad_data["Клас житла"] = details.get("Клас житла")
-                ad_data["Район"] = details.get("offers", {}).get("areaServed", {}).get("name")
-                all_steps_ads[full_link] = ad_data
-                list_page.close()
-                detailed_page.close()
-                is_duplicate = get_update_mongo_atlas(full_link, ad_data)
-                if is_duplicate:
-                    ad_data["!!! Ймовірний дублікат"] = is_duplicate
+                if details.get("description"):
+                    ad_data["Опис"] = details.get("description")
+                    ad_data["Хеш опису"] = hash_obj
+                    ad_data["Вид об'єкта"] = details.get("Вид об'єкта")
+                    ad_data["Поверх"] = details.get("Поверх")
+                    ad_data["Поверховість"] = details.get("Поверховість")
+                    ad_data["Опалення"] = details.get("Опалення")
+                    ad_data["Клас житла"] = details.get("Клас житла")
+                    ad_data["Район"] = details.get("offers", {}).get("areaServed", {}).get("name")
+                    all_steps_ads[full_link] = ad_data
+                    list_page.close()
+                    detailed_page.close()
+                    is_duplicate = get_update_mongo_atlas(full_link, ad_data)
+                    if is_duplicate:
+                        ad_data["!!! Ймовірний дублікат"] = is_duplicate
         if not ads:
             break
         if not found_yesterday:
