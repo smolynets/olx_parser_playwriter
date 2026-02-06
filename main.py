@@ -166,6 +166,8 @@ def normalize_description_text(text: str) -> str:
     return text
 
 def get_text_hash(text: str) -> str:
+    if not text:
+        return None
     norm = normalize_description_text(text)
     return hashlib.sha256(norm.encode("utf-8")).hexdigest()
 
