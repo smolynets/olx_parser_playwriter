@@ -257,6 +257,8 @@ def parse_detailed(html):
             if ":" in text:
                 key, value = map(str.strip, text.split(":", 1))
                 data[key] = value
+    name_container = soup.find(attrs={"data-testid": "user-profile-user-name"})
+    data["Автор"] = name_container.get_text(strip=True) if name_container else None
     return data
 
 
@@ -360,16 +362,16 @@ def getch_olx_data(all_steps_ads, base_url, context):
 
 
 if __name__ == "__main__":
-    SCHEDULE = {
-        0: '10',
-        1: '09',
-        2: '08',
-        3: '09',
-        4: '10',
-        5: '09',
-        6: '08',
-    }
-    allowed_hour = SCHEDULE.get(week_day)
+    # SCHEDULE = {
+    #     0: '10',
+    #     1: '09',
+    #     2: '08',
+    #     3: '09',
+    #     4: '10',
+    #     5: '09',
+    #     6: '08',
+    # }
+    # allowed_hour = SCHEDULE.get(week_day)
     # if current_hour == str(allowed_hour):
     start = time.perf_counter()
     base_url = (
