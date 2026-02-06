@@ -166,6 +166,8 @@ def normalize_description_text(text: str) -> str:
     return text
 
 def get_text_hash(text: str) -> str:
+    if not text:
+        return None
     norm = normalize_description_text(text)
     return hashlib.sha256(norm.encode("utf-8")).hexdigest()
 
@@ -339,10 +341,7 @@ def getch_olx_data(all_steps_ads, base_url, context):
                 # )
                 html = detailed_page.content()
                 details = parse_detailed(html)
-                if details.get("description"):
-                    hash_obj = get_text_hash(details.get("description"))
-                else:
-                    continue
+                hash_obj = get_text_hash(details.get("description"))
                 # add to main dict
                 ad_data["Опис"] = details.get("description")
                 ad_data["Хеш опису"] = hash_obj
