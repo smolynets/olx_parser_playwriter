@@ -58,9 +58,9 @@ def send_html_email(email_subject, records):
     <ul>
     """
     for k, v in records.items():
-        description = v.get("Опис")
-        short_desc = f'{" ".join(v.get("Опис").split()[:5])}...' if description else None
-        email_html_body += f"<li><strong>Опис - {short_desc}</strong></li>\n"
+        # description = v.get("Опис")
+        # short_desc = f'{" ".join(v.get("Опис").split()[:5])}...' if description else None
+        # email_html_body += f"<li><strong>Опис - {short_desc}</strong></li>\n"
         email_html_body += f"<li><strong>Посилання - {k}</strong></li>\n"
         for v_k, v_v in v.items():
             if v_k != "Опис":
@@ -90,13 +90,13 @@ def send_html_email(email_subject, records):
 
 
 def get_update_mongo_atlas(link: str, value: dict):
-    ads_hash = value["Хеш опису"]
+    ads_hash = value["Хеш заголовку"]
     ads = mongo_repo.get_ad_by_hash(ads_hash)
     if not ads:
         doc = {
             "ads_hash": ads_hash,
             "ads_link": link,
-            "description": value["Опис"],
+            "title": value["Заголовок"],
             "created_at": datetime.now(timezone.utc)
         }
         mongo_repo.upsert_ad(doc)
@@ -160,7 +160,7 @@ def get_price(card):
     return price
 
 
-def normalize_description_text(text: str) -> str:
+def normalize_text(text: str) -> str:
     text = text.lower()
     text = re.sub(r'\s+', '', text)
     text = re.sub(r'[^\wа-я0-9]', '', text)
@@ -169,7 +169,7 @@ def normalize_description_text(text: str) -> str:
 def get_text_hash(text: str) -> str:
     if not text:
         return None
-    norm = normalize_description_text(text)
+    norm = normalize_text(text)
     return hashlib.sha256(norm.encode("utf-8")).hexdigest()
 
 
@@ -240,29 +240,29 @@ def parse_listing_page(html, prev_day_str):
     return ads, found_yesterday
 
 
-def parse_detailed(html):
-    # parse main contant
-    soup = BeautifulSoup(html, "html.parser")
-    ld = soup.find("script", type="application/ld+json")
-    data = json.loads(ld.string)
-    # parse parameters
-    containers = soup.find_all(attrs={"data-testid": "ad-parameters-container"})
-    for container in containers:
-        if not container.get_text(strip=True):
-            continue
-        items = container.find_all("p")
-        if not items:
-            continue
-        # Add params to data list
-        items = list(container.find_all("p"))
-        for item in items:
-            text = item.get_text(strip=True)
-            if ":" in text:
-                key, value = map(str.strip, text.split(":", 1))
-                data[key] = value
-    name_container = soup.find(attrs={"data-testid": "user-profile-user-name"})
-    data["Автор"] = name_container.get_text(strip=True) if name_container else None
-    return data
+# def parse_detailed(html):
+#     # parse main contant
+#     soup = BeautifulSoup(html, "html.parser")
+#     ld = soup.find("script", type="application/ld+json")
+#     data = json.loads(ld.string)
+#     # parse parameters
+#     containers = soup.find_all(attrs={"data-testid": "ad-parameters-container"})
+#     for container in containers:
+#         if not container.get_text(strip=True):
+#             continue
+#         items = container.find_all("p")
+#         if not items:
+#             continue
+#         # Add params to data list
+#         items = list(container.find_all("p"))
+#         for item in items:
+#             text = item.get_text(strip=True)
+#             if ":" in text:
+#                 key, value = map(str.strip, text.split(":", 1))
+#                 data[key] = value
+#     name_container = soup.find(attrs={"data-testid": "user-profile-user-name"})
+#     data["Автор"] = name_container.get_text(strip=True) if name_container else None
+#     return data
 
 
 def is_olx_blocked(html: str) -> bool:
@@ -331,34 +331,34 @@ def getch_olx_data(all_steps_ads, base_url, context):
             if full_link not in all_steps_ads:
                 time.sleep(random.randint(65, 153))
                 # create detailed page
-                detailed_page = context.new_page()
-                stealth_sync(detailed_page)
+                # detailed_page = context.new_page()
+                # stealth_sync(detailed_page)
                 print(f"Завантаження: {full_link}")
-                detailed_page.goto(full_link, timeout=60000)
+                # detailed_page.goto(full_link, timeout=60000)
                 # detailed_page.wait_for_selector(
                 #     '[data-testid="ad-parameters-container"]',
                 #     timeout=30000,
                 #     state="attached"
                 # )
-                html = detailed_page.content()
-                details = parse_detailed(html)
-                hash_obj = get_text_hash(details.get("description"))
+                # html = detailed_page.content()
+                # details = parse_detailed(html)
+                # hash_obj = get_text_hash(details.get("description"))
+                hash_obj = get_text_hash(ad_data["Заголовок"])
                 # add to main dict
-                if details.get("description"):
-                    ad_data["Опис"] = details.get("description")
-                    ad_data["Хеш опису"] = hash_obj
-                    ad_data["Вид об'єкта"] = details.get("Вид об'єкта")
-                    ad_data["Поверх"] = details.get("Поверх")
-                    ad_data["Поверховість"] = details.get("Поверховість")
-                    ad_data["Опалення"] = details.get("Опалення")
-                    ad_data["Клас житла"] = details.get("Клас житла")
-                    ad_data["Район"] = details.get("offers", {}).get("areaServed", {}).get("name")
-                    all_steps_ads[full_link] = ad_data
-                    list_page.close()
-                    detailed_page.close()
-                    is_duplicate = get_update_mongo_atlas(full_link, ad_data)
-                    if is_duplicate:
-                        ad_data["!!! Ймовірний дублікат"] = is_duplicate
+                # ad_data["Опис"] = details.get("description")
+                ad_data["Хеш заголовку"] = hash_obj
+                # ad_data["Вид об'єкта"] = details.get("Вид об'єкта")
+                # ad_data["Поверх"] = details.get("Поверх")
+                # ad_data["Поверховість"] = details.get("Поверховість")
+                # ad_data["Опалення"] = details.get("Опалення")
+                # ad_data["Клас житла"] = details.get("Клас житла")
+                # ad_data["Район"] = details.get("offers", {}).get("areaServed", {}).get("name")
+                all_steps_ads[full_link] = ad_data
+                list_page.close()
+                # detailed_page.close()
+                is_duplicate = get_update_mongo_atlas(full_link, ad_data)
+                if is_duplicate:
+                    ad_data["!!! Ймовірний дублікат"] = is_duplicate
         if not ads:
             break
         if not found_yesterday:
