@@ -240,29 +240,29 @@ def parse_listing_page(html, prev_day_str):
     return ads, found_yesterday
 
 
-# def parse_detailed(html):
-#     # parse main contant
-#     soup = BeautifulSoup(html, "html.parser")
-#     ld = soup.find("script", type="application/ld+json")
-#     data = json.loads(ld.string)
-#     # parse parameters
-#     containers = soup.find_all(attrs={"data-testid": "ad-parameters-container"})
-#     for container in containers:
-#         if not container.get_text(strip=True):
-#             continue
-#         items = container.find_all("p")
-#         if not items:
-#             continue
-#         # Add params to data list
-#         items = list(container.find_all("p"))
-#         for item in items:
-#             text = item.get_text(strip=True)
-#             if ":" in text:
-#                 key, value = map(str.strip, text.split(":", 1))
-#                 data[key] = value
-#     name_container = soup.find(attrs={"data-testid": "user-profile-user-name"})
-#     data["Автор"] = name_container.get_text(strip=True) if name_container else None
-#     return data
+def parse_detailed(html):
+    # parse main contant
+    soup = BeautifulSoup(html, "html.parser")
+    ld = soup.find("script", type="application/ld+json")
+    data = json.loads(ld.string)
+    # parse parameters
+    containers = soup.find_all(attrs={"data-testid": "ad-parameters-container"})
+    for container in containers:
+        if not container.get_text(strip=True):
+            continue
+        items = container.find_all("p")
+        if not items:
+            continue
+        # Add params to data list
+        items = list(container.find_all("p"))
+        for item in items:
+            text = item.get_text(strip=True)
+            if ":" in text:
+                key, value = map(str.strip, text.split(":", 1))
+                data[key] = value
+    name_container = soup.find(attrs={"data-testid": "user-profile-user-name"})
+    data["Автор"] = name_container.get_text(strip=True) if name_container else None
+    return data
 
 
 def is_olx_blocked(html: str) -> bool:
@@ -270,12 +270,12 @@ def is_olx_blocked(html: str) -> bool:
 
     # HTML so small - antibot
     if len(html) < 50_000:
-        print("239########")
+        print("######## html so small")
         return True
 
     # no cards
     if "data-cy=\"l-card\"" not in html:
-        print("244########")
+        print("######## no cards in html")
         return True
 
     # blocking signals
@@ -331,34 +331,34 @@ def getch_olx_data(all_steps_ads, base_url, context):
             if full_link not in all_steps_ads:
                 time.sleep(random.randint(65, 153))
                 # create detailed page
-                # detailed_page = context.new_page()
-                # stealth_sync(detailed_page)
+                detailed_page = context.new_page()
+                stealth_sync(detailed_page)
                 print(f"Завантаження: {full_link}")
-                # detailed_page.goto(full_link, timeout=60000)
+                detailed_page.goto(full_link, timeout=60000)
                 # detailed_page.wait_for_selector(
                 #     '[data-testid="ad-parameters-container"]',
                 #     timeout=30000,
                 #     state="attached"
                 # )
-                # html = detailed_page.content()
-                # details = parse_detailed(html)
+                html = detailed_page.content()
+                details = parse_detailed(html)
                 # hash_obj = get_text_hash(details.get("description"))
                 hash_obj = get_text_hash(ad_data["Заголовок"])
                 # add to main dict
-                # ad_data["Опис"] = details.get("description")
+                ad_data["Опис"] = details.get("description")
                 ad_data["Хеш заголовку"] = hash_obj
-                # ad_data["Вид об'єкта"] = details.get("Вид об'єкта")
-                # ad_data["Поверх"] = details.get("Поверх")
-                # ad_data["Поверховість"] = details.get("Поверховість")
-                # ad_data["Опалення"] = details.get("Опалення")
-                # ad_data["Клас житла"] = details.get("Клас житла")
-                # ad_data["Район"] = details.get("offers", {}).get("areaServed", {}).get("name")
+                ad_data["Вид об'єкта"] = details.get("Вид об'єкта")
+                ad_data["Поверх"] = details.get("Поверх")
+                ad_data["Поверховість"] = details.get("Поверховість")
+                ad_data["Опалення"] = details.get("Опалення")
+                ad_data["Клас житла"] = details.get("Клас житла")
+                ad_data["Район"] = details.get("offers", {}).get("areaServed", {}).get("name")
                 all_steps_ads[full_link] = ad_data
-                list_page.close()
-                # detailed_page.close()
+                detailed_page.close()
                 is_duplicate = get_update_mongo_atlas(full_link, ad_data)
                 if is_duplicate:
                     ad_data["!!! Ймовірний дублікат"] = is_duplicate
+        list_page.close()
         if not ads:
             break
         if not found_yesterday:
@@ -368,17 +368,6 @@ def getch_olx_data(all_steps_ads, base_url, context):
 
 
 if __name__ == "__main__":
-    # SCHEDULE = {
-    #     0: '10',
-    #     1: '09',
-    #     2: '08',
-    #     3: '09',
-    #     4: '10',
-    #     5: '09',
-    #     6: '08',
-    # }
-    # allowed_hour = SCHEDULE.get(week_day)
-    # if current_hour == str(allowed_hour):
     start = time.perf_counter()
     base_url = (
         "https://www.olx.ua/uk/nedvizhimost/kvartiry/"
@@ -405,5 +394,3 @@ if __name__ == "__main__":
     # calculate spended time
     end = time.perf_counter()
     print(f"Час виконання: {end - start:.3f} сек")
-    # else:
-    #     print("Поточна година недозволена для виконання")
