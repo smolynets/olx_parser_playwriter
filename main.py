@@ -340,8 +340,8 @@ def getch_olx_data(all_steps_ads, base_url, context):
                 #     timeout=30000,
                 #     state="attached"
                 # )
-                html = detailed_page.content()
-                details = parse_detailed(html)
+                detailed_html = detailed_page.content()
+                details = parse_detailed(detailed_html)
                 # hash_obj = get_text_hash(details.get("description"))
                 hash_obj = get_text_hash(ad_data["Заголовок"])
                 # add to main dict
