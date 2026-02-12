@@ -353,6 +353,7 @@ def getch_olx_data(all_steps_ads, base_url, context):
                 ad_data["Опалення"] = details.get("Опалення")
                 ad_data["Клас житла"] = details.get("Клас житла")
                 ad_data["Район"] = details.get("offers", {}).get("areaServed", {}).get("name")
+                ad_data["Автор"] = details.get("Автор")
                 all_steps_ads[full_link] = ad_data
                 detailed_page.close()
                 is_duplicate = get_update_mongo_atlas(full_link, ad_data)
