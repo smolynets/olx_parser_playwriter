@@ -186,9 +186,17 @@ def create_stealth_context(headless=True):
         ]
     )
     context = browser.new_context(
-        user_agent=ua.random,
+        user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         locale="uk-UA",
-        viewport={"width": 1366, "height": 768},
+        viewport={"width": 1920, "height": 1080},
+        extra_http_headers={
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Referer': 'https://www.olx.ua/',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+        }
     )
     return p, browser, context
 
@@ -241,27 +249,37 @@ def parse_listing_page(html, prev_day_str):
 
 
 def parse_detailed(html):
-    # parse main contant
     soup = BeautifulSoup(html, "html.parser")
+    data = {}
     ld = soup.find("script", type="application/ld+json")
     data = json.loads(ld.string)
-    # parse parameters
-    containers = soup.find_all(attrs={"data-testid": "ad-parameters-container"})
-    for container in containers:
-        if not container.get_text(strip=True):
-            continue
-        items = container.find_all("p")
-        if not items:
-            continue
-        # Add params to data list
-        items = list(container.find_all("p"))
-        for item in items:
-            text = item.get_text(strip=True)
-            if ":" in text:
-                key, value = map(str.strip, text.split(":", 1))
-                data[key] = value
-    name_container = soup.find(attrs={"data-testid": "user-profile-user-name"})
-    data["Автор"] = name_container.get_text(strip=True) if name_container else None
+    # Extract __PRERENDERED_STATE__ (it's DOUBLE-ESCAPED JSON!)
+    try:
+        match = re.search(r'window\.__PRERENDERED_STATE__\s*=\s*"(.+?)";', html, re.DOTALL)
+        if match:
+            json_string = match.group(1)
+            decoded_string = json.loads(f'"{json_string}"')
+            prerendered = json.loads(decoded_string)
+            ad_data = prerendered.get("ad", {}).get("ad", {})
+            user_data = ad_data.get("user", {})
+            data["author"] = user_data.get("name")
+            # params!
+            params = ad_data.get("params", [])
+            print(f"📊 Знайдено params: {len(params)}")
+            for param in params:
+                name = param.get("name")
+                value = param.get("value")
+                if name and value:
+                    data[name] = value
+            location_data = ad_data.get("location", {})
+            if location_data:
+                district = location_data.get("district", {})
+                if district:
+                    data["Район"] = district.get("name")
+    except Exception as e:
+        print(f"⚠️ Помилка парсингу __PRERENDERED_STATE__: {e}")
+        import traceback
+        traceback.print_exc()
     return data
 
 
@@ -334,21 +352,8 @@ def getch_olx_data(all_steps_ads, base_url, context):
                 detailed_page = context.new_page()
                 stealth_sync(detailed_page)
                 print(f"Завантаження: {full_link}")
-                detailed_page.goto(full_link, timeout=60000)
-                # detailed_page.wait_for_selector(
-                #     '[data-testid="ad-parameters-container"]',
-                #     timeout=30000,
-                #     state="attached"
-                # )
+                detailed_page.goto(full_link, timeout=60000, wait_until="networkidle")
                 detailed_html = detailed_page.content()
-                print("344#####################################")
-                print(detailed_html)
-                print("#####################################")
-                print("#####################################")
-                print("#####################################")
-                print("#####################################")
-                print("#####################################")
-                print("#####################################")
                 details = parse_detailed(detailed_html)
                 # hash_obj = get_text_hash(details.get("description"))
                 hash_obj = get_text_hash(ad_data["Заголовок"])
@@ -361,13 +366,15 @@ def getch_olx_data(all_steps_ads, base_url, context):
                 ad_data["Опалення"] = details.get("Опалення")
                 ad_data["Клас житла"] = details.get("Клас житла")
                 ad_data["Район"] = details.get("offers", {}).get("areaServed", {}).get("name")
-                ad_data["Автор"] = details.get("Автор")
+                ad_data["Автор"] = details.get("author")
                 all_steps_ads[full_link] = ad_data
                 detailed_page.close()
                 is_duplicate = get_update_mongo_atlas(full_link, ad_data)
+                break
                 if is_duplicate:
                     ad_data["!!! Ймовірний дублікат"] = is_duplicate
         list_page.close()
+        break
         if not ads:
             break
         if not found_yesterday:
@@ -388,8 +395,8 @@ if __name__ == "__main__":
     all_steps_ads = {}
     p, browser, context = create_stealth_context(headless=True)
     try:
-        for step in range(random.randint(2, 3)):
-            time.sleep(random.randint(111, 755))
+        for step in range(random.randint(1, 1)):
+            time.sleep(random.randint(1, 1))
             step += 1
             print(f"Step number {step}")
             getch_olx_data(all_steps_ads, base_url, context)

@@ -36,25 +36,8 @@ jobs:
         poetry install --no-interaction --no-root
         poetry run playwright install chromium
 
-
-    # 1️⃣ first run
-    - name: Run script (first attempt)
-      id: first_run
-      env:
-        EMAIL_APP_PASSWORD: ${{ secrets.EMAIL_APP_PASSWORD }}
-        TO_EMAIL: ${{ secrets.TO_EMAIL }}
-        FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
-        mongo_url: ${{ secrets.mongo_url }}
-      run: poetry run python main.py
-
-    # 2️⃣ wait 6 mins, only if fail
-    - name: Wait 6 minutes before retry
-      if: failure()
-      run: sleep 3600
-
-    # 3️⃣ second run
-    - name: Run script (retry)
-      if: failure()
+    - name: Run script
+      id: run
       env:
         EMAIL_APP_PASSWORD: ${{ secrets.EMAIL_APP_PASSWORD }}
         TO_EMAIL: ${{ secrets.TO_EMAIL }}
