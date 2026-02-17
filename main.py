@@ -18,6 +18,7 @@ from email.mime.multipart import MIMEMultipart
 
 from settings import settings
 from mongo_atlas import OlxAdsRepository
+from gemini import PropertyConsultant
 
 
 current_date = datetime.now()
@@ -30,6 +31,8 @@ smtp_server = 'smtp.gmail.com'
 smtp_port = 587
 
 mongo_repo = OlxAdsRepository(mongo_uri=settings.mongo_url)
+
+ai_bot = PropertyConsultant()
 
 
 # helpers
@@ -63,7 +66,7 @@ def send_html_email(email_subject, records):
         email_html_body += f"<li><strong>Опис - {short_desc}</strong></li>\n"
         email_html_body += f"<li><strong>Посилання - {k}</strong></li>\n"
         for v_k, v_v in v.items():
-            if v_k != "Опис":
+            if v_k not in ["Опис", "Фото"]:
                 email_html_body += f"<li><strong>{v_k} - {v_v}</strong></li>\n"
         email_html_body += "<li>----------------------------</li>\n"
         email_html_body += "<br>"
@@ -367,6 +370,10 @@ def getch_olx_data(all_steps_ads, base_url, context):
                 ad_data["Район"] = details.get("offers", {}).get("areaServed", {}).get("name")
                 ad_data["Автор"] = details.get("author")
                 ad_data["Площа кухні"] = details.get("Площа кухні")
+                ad_data["Фото"] = details.get("image")
+                ad_data["Ремонт"] = details.get("Ремонт")
+                ad_data["Меблювання"] = details.get("Меблювання")
+                ad_data["Тип стін"] = details.get("Тип стін")
                 all_steps_ads[full_link] = ad_data
                 detailed_page.close()
                 is_duplicate = get_update_mongo_atlas(full_link, ad_data)
@@ -402,8 +409,15 @@ if __name__ == "__main__":
         browser.close()
         p.stop()
     print(f"\nЗнайдено {len(all_steps_ads)} оголошень:")
+    # add planning type by llm for each ads
+    ai_response = ai_bot.ask(all_steps_ads)
+    for link, p_type in ai_response.items():
+        if link in all_steps_ads:
+            all_steps_ads[link]['Тип планування (llm)'] = p_type
+    # show all ads in terminal
     for k, v in all_steps_ads.items():
         print(f"{k}---{v}")
+    # send ads to email
     send_html_email("Test olx", all_steps_ads)
     # calculate spended time
     end = time.perf_counter()

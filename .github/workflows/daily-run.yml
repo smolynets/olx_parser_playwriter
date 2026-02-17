@@ -43,4 +43,5 @@ jobs:
         TO_EMAIL: ${{ secrets.TO_EMAIL }}
         FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
         mongo_url: ${{ secrets.mongo_url }}
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
       run: poetry run python main.py
