@@ -255,39 +255,36 @@ def parse_detailed(html):
     soup = BeautifulSoup(html, "html.parser")
     data = {}
     ld = soup.find("script", type="application/ld+json")
-    # data = json.loads(ld.string)
-    try:
+    if ld is not None:
         data = json.loads(ld.string)
-        return data
-    except json.JSONDecodeError:
-        print("Failed to decode JSON from script tag")
-        return {}
-    # Extract __PRERENDERED_STATE__ (it's DOUBLE-ESCAPED JSON!)
-    try:
-        match = re.search(r'window\.__PRERENDERED_STATE__\s*=\s*"(.+?)";', html, re.DOTALL)
-        if match:
-            json_string = match.group(1)
-            decoded_string = json.loads(f'"{json_string}"')
-            prerendered = json.loads(decoded_string)
-            ad_data = prerendered.get("ad", {}).get("ad", {})
-            user_data = ad_data.get("user", {})
-            data["author"] = user_data.get("name")
-            # params!
-            params = ad_data.get("params", [])
-            for param in params:
-                name = param.get("name")
-                value = param.get("value")
-                if name and value:
-                    data[name] = value
-            location_data = ad_data.get("location", {})
-            if location_data:
-                district = location_data.get("district", {})
-                if district:
-                    data["Район"] = district.get("name")
-    except Exception as e:
-        print(f"⚠️ Помилка парсингу __PRERENDERED_STATE__: {e}")
-        import traceback
-        traceback.print_exc()
+        # Extract __PRERENDERED_STATE__ (it's DOUBLE-ESCAPED JSON!)
+        try:
+            match = re.search(r'window\.__PRERENDERED_STATE__\s*=\s*"(.+?)";', html, re.DOTALL)
+            if match:
+                json_string = match.group(1)
+                decoded_string = json.loads(f'"{json_string}"')
+                prerendered = json.loads(decoded_string)
+                ad_data = prerendered.get("ad", {}).get("ad", {})
+                user_data = ad_data.get("user", {})
+                data["author"] = user_data.get("name")
+                # params!
+                params = ad_data.get("params", [])
+                for param in params:
+                    name = param.get("name")
+                    value = param.get("value")
+                    if name and value:
+                        data[name] = value
+                location_data = ad_data.get("location", {})
+                if location_data:
+                    district = location_data.get("district", {})
+                    if district:
+                        data["Район"] = district.get("name")
+        except Exception as e:
+            print(f"⚠️ Помилка парсингу __PRERENDERED_STATE__: {e}")
+            import traceback
+            traceback.print_exc()
+    else:
+        data = {}
     return data
 
 
