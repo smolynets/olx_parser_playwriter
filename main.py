@@ -255,7 +255,13 @@ def parse_detailed(html):
     soup = BeautifulSoup(html, "html.parser")
     data = {}
     ld = soup.find("script", type="application/ld+json")
-    data = json.loads(ld.string)
+    # data = json.loads(ld.string)
+    try:
+        data = json.loads(ld.string)
+        return data
+    except json.JSONDecodeError:
+        print("Failed to decode JSON from script tag")
+        return {}
     # Extract __PRERENDERED_STATE__ (it's DOUBLE-ESCAPED JSON!)
     try:
         match = re.search(r'window\.__PRERENDERED_STATE__\s*=\s*"(.+?)";', html, re.DOTALL)
