@@ -380,9 +380,11 @@ def getch_olx_data(all_steps_ads, base_url, context):
                 all_steps_ads[full_link] = ad_data
                 detailed_page.close()
                 is_duplicate = get_update_mongo_atlas(full_link, ad_data)
+                break
                 if is_duplicate is not None and is_duplicate != full_link:
                     ad_data["!!! Ймовірний дублікат"] = is_duplicate
         list_page.close()
+        break
         if not ads:
             break
         if not found_yesterday:
@@ -403,8 +405,8 @@ if __name__ == "__main__":
     all_steps_ads = {}
     p, browser, context = create_stealth_context(headless=True)
     try:
-        for step in range(random.randint(2, 3)):
-            time.sleep(random.randint(111, 755))
+        for step in range(random.randint(1, 1)):
+            time.sleep(random.randint(1, 1))
             step += 1
             print(f"Step number {step}")
             getch_olx_data(all_steps_ads, base_url, context)

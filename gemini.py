@@ -20,7 +20,7 @@ PlanningType = Literal[
 allowed_types = ", ".join(PlanningType.__args__)
 
 class PlanningAnalysis(BaseModel):
-    link: str = Field(description="URL або ID оголошення (ключ з вхідного словника)")
+    link: str = Field(description="ID (ключ), наданий у вхідних даних для кожного об'єкта")
     planning_type: PlanningType = Field(description="Визначений тип планування")
 
 class AdResponse(BaseModel):
@@ -33,20 +33,33 @@ class PropertyConsultant:
             model=self.model,
             output_type=AdResponse,
             system_prompt=(
-                "Ти — провідний експерт з нерухомості у Львові. Твоє завдання: "
-                "визначити тип планування квартири на основі наданих даних. "
-                f"Використовуй ТІЛЬКИ ці категорії: {allowed_types}."
+                "Ти — провідний експерт з нерухомості у Львові. "
+                "Тобі буде надано список об'єктів під номерами (ID). "
+                "Твоє завдання: для кожного ID визначити тип планування. "
+                f"Використовуй ТІЛЬКИ ці категорії: {allowed_types}. "
+                "У відповіді в полі 'link' повертай саме той ID, який був наданий для об'єкта."
             )
         )
 
-    def ask(self, ads_dict: dict) -> List[dict]:
-        if not ads_dict:
-            return []
-        prompt_text = (
-            "Проаналізуй наступні оголошення про нерухомість у Львові. "
-            "ВХІДНІ ДАНІ: це словник, де КЛЮЧ — це посилання (link), а ЗНАЧЕННЯ — характеристики. "
-            "Для кожного елемента обов'язково збережи його КЛЮЧ у полі 'link' та визнач 'planning_type'. "
-            f"Ось дані: {ads_dict}"
-        )
-        result = self.agent.run_sync(prompt_text)
-        return {item.link: item.planning_type for item in result.output.results}
+    def ask(self, ads_dict: dict) -> Dict[str, str]:
+        # Mapping to keep URLs safe from AI modifications
+        mapping = {str(i): link for i, link in enumerate(ads_dict.keys())}
+        
+        # Minimal data for AI
+        ai_input = {
+            i: {
+                "t": data.get("Заголовок"),
+                "d": data.get("Опис")
+            } for i, (link, data) in enumerate(ads_dict.items())
+        }
+
+        prompt = f"Analyze and return planning_type for these IDs: {ai_input}"
+        result = self.agent.run_sync(prompt)
+        
+        # Map back to original links
+        results_map = {}
+        for item in result.output.results:
+            original_link = mapping.get(item.link)
+            if original_link:
+                results_map[original_link] = item.planning_type
+        return results_map
