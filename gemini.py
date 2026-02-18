@@ -29,7 +29,9 @@ class AdResponse(BaseModel):
 class PropertyConsultant:
     def __init__(self):
         self.model = GoogleModel(model_name="models/gemini-flash-lite-latest")
-        self.agent = Agent(
+
+    def ask_planning_type(self, ads_dict: dict) -> Dict[str, str]:
+        agent = Agent(
             model=self.model,
             output_type=AdResponse,
             system_prompt=(
@@ -40,26 +42,32 @@ class PropertyConsultant:
                 "У відповіді в полі 'link' повертай саме той ID, який був наданий для об'єкта."
             )
         )
+        items = list(ads_dict.items())
+        batch_size = 20
+        final_results = {}
 
-    def ask(self, ads_dict: dict) -> Dict[str, str]:
-        # Mapping to keep URLs safe from AI modifications
-        mapping = {str(i): link for i, link in enumerate(ads_dict.keys())}
-        
-        # Minimal data for AI
-        ai_input = {
-            i: {
-                "t": data.get("Заголовок"),
-                "d": data.get("Опис")
-            } for i, (link, data) in enumerate(ads_dict.items())
-        }
-
-        prompt = f"Analyze and return planning_type for these IDs: {ai_input}"
-        result = self.agent.run_sync(prompt)
-        
-        # Map back to original links
-        results_map = {}
-        for item in result.output.results:
-            original_link = mapping.get(item.link)
-            if original_link:
-                results_map[original_link] = item.planning_type
-        return results_map
+        for i in range(0, len(items), batch_size):
+            # Slice current chunk
+            chunk = items[i : i + batch_size]
+            mapping = {}
+            ai_input = {}
+            for idx, (link, data) in enumerate(chunk):
+                s_idx = str(idx)
+                mapping[s_idx] = link
+                ai_input[s_idx] = {
+                    "t": data.get("Заголовок"),
+                    "d": data.get("Опис")
+                }
+            prompt = f"Analyze and return planning_type for these IDs: {ai_input}"
+            try:
+                result = agent.run_sync(prompt)
+                # Map back to original links
+                for item in result.output.results:
+                    original_link = mapping.get(str(item.link))
+                    if original_link:
+                        final_results[original_link] = item.planning_type
+            except Exception as e:
+                # Skip this batch if AI processing fails
+                print(f"Error processing batch starting at index {i}: {e}")
+                continue
+        return final_results

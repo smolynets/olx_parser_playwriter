@@ -413,7 +413,7 @@ if __name__ == "__main__":
         p.stop()
     print(f"\nЗнайдено {len(all_steps_ads)} оголошень:")
     # add planning type by llm for each ads
-    ai_response = ai_bot.ask(all_steps_ads)
+    ai_response = ai_bot.ask_planning_type(all_steps_ads)
     for link, p_type in ai_response.items():
         if link in all_steps_ads:
             all_steps_ads[link]['Тип планування (llm)'] = p_type
