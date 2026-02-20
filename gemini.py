@@ -43,7 +43,7 @@ class PropertyConsultant:
             )
         )
         items = list(ads_dict.items())
-        batch_size = 20
+        batch_size = 10
         final_results = {}
 
         for i in range(0, len(items), batch_size):
