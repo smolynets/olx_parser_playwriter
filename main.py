@@ -341,7 +341,7 @@ def get_image_for_llm(image_url):
             print(f"Attempt {attempt}: Proxy is starting up or unreachable...")
         # If not the last attempt, wait before trying again
         if attempt < max_retries:
-            time.sleep(10)
+            time.sleep(60)
 
     if not proxy_ready:
         print(f"Error: Proxy unavailable after {max_retries} attempts.")
