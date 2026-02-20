@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     email_app_password: str
     mongo_url: str
     google_api_key: str
+    image_server_url: str
+    image_server_api_token: str
 
     model_config = SettingsConfigDict(
         env_file=".env",

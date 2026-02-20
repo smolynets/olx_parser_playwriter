@@ -44,4 +44,6 @@ jobs:
         FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
         mongo_url: ${{ secrets.mongo_url }}
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        image_server_url: ${{ secrets.image_server_url }}
+        image_server_api_token: ${{ secrets.image_server_api_token }}
       run: poetry run python main.py

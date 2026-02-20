@@ -1,3 +1,4 @@
+import base64
 import os
 import json
 import hashlib
@@ -5,9 +6,12 @@ import re
 import math
 import time
 import random
+import requests
 from datetime import datetime, timedelta, timezone
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
+from io import BytesIO
+from PIL import Image
 
 from playwright.sync_api import sync_playwright
 from playwright_stealth import stealth_sync
@@ -315,6 +319,66 @@ def is_olx_blocked(html: str) -> bool:
     return False
 
 
+def get_image_for_llm(image_url):
+    """
+    Fetches the image, verifies integrity, and returns a base64 string ready for LLM.
+    """
+    base_url = settings.image_server_url
+    api_token = settings.image_server_api_token
+    # --- Health Check Loop (Ping) ---
+    max_retries = 4
+    proxy_ready = False
+    for attempt in range(1, max_retries + 1):
+        try:
+            # Short timeout for ping to check if server is alive
+            ping_response = requests.get(f"{base_url}/ping", timeout=5)
+            if ping_response.status_code == 200:
+                proxy_ready = True
+                break
+            else:
+                print(f"Attempt {attempt}: Proxy returned {ping_response.status_code}.")
+        except requests.exceptions.RequestException:
+            print(f"Attempt {attempt}: Proxy is starting up or unreachable...")
+        # If not the last attempt, wait before trying again
+        if attempt < max_retries:
+            time.sleep(10)
+
+    if not proxy_ready:
+        print(f"Error: Proxy unavailable after {max_retries} attempts.")
+        return None
+    # --- Fetching the Image ---
+    headers = {
+        "accept": "application/json",
+        "Authorization": f"Bearer {api_token}"
+    }
+    params = {"url": image_url}
+
+    try:
+        # Fetch image from proxy
+        response = requests.get(f"{base_url}/proxy-image", headers=headers, params=params, timeout=15)
+        response.raise_for_status()
+        
+        # Check content type
+        content_type = response.headers.get("Content-Type", "image/jpeg")
+
+        # Verify integrity with Pillow
+        image_bytes = response.content
+        img = Image.open(BytesIO(image_bytes))
+        img.verify() 
+        
+        # Convert bytes to base64
+        # We use image_bytes directly as it is already the raw binary data
+        base64_encoded = base64.b64encode(image_bytes).decode('utf-8')
+        
+        # Return formatted string (Data URL) or just the hash
+        # Most LLMs prefer the full Data URL format
+        return f"data:{content_type};base64,{base64_encoded}"
+
+    except Exception as e:
+        print(f"Error processing image for LLM: {e}")
+        return None
+
+
 
 def getch_olx_data(all_steps_ads, base_url, context):
     prev_day_str = get_prev_day_str()
@@ -379,6 +443,13 @@ def getch_olx_data(all_steps_ads, base_url, context):
                 ad_data["Тип стін"] = details.get("Тип стін")
                 all_steps_ads[full_link] = ad_data
                 detailed_page.close()
+                for image_url in details["image"]:
+                    image_obj = get_image_for_llm(image_url)
+                    time.sleep(random.randint(20, 35))
+                    if isinstance(image_obj, str) and image_obj.startswith("data:image"):
+                        print("Check passed: Valid Data URL format.")
+                    else:
+                        print("Check failed: Not a valid image string.")
                 is_duplicate = get_update_mongo_atlas(full_link, ad_data)
                 if is_duplicate is not None and is_duplicate != full_link:
                     ad_data["!!! Ймовірний дублікат"] = is_duplicate
