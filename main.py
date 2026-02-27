@@ -23,6 +23,7 @@ from email.mime.multipart import MIMEMultipart
 from settings import settings
 from mongo_atlas import OlxAdsRepository
 from gemini import PropertyConsultant
+from qroq_logic import TextAssistant, VisionAssistant
 
 
 current_date = datetime.now()
@@ -37,6 +38,8 @@ smtp_port = 587
 mongo_repo = OlxAdsRepository(mongo_uri=settings.mongo_url)
 
 ai_bot = PropertyConsultant()
+
+vision_assistant = VisionAssistant()
 
 
 # helpers
@@ -354,29 +357,22 @@ def get_image_for_llm(image_url):
     params = {"url": image_url}
 
     try:
-        # Fetch image from proxy
         response = requests.get(f"{base_url}/proxy-image", headers=headers, params=params, timeout=15)
         response.raise_for_status()
         
-        # Check content type
         content_type = response.headers.get("Content-Type", "image/jpeg")
-
-        # Verify integrity with Pillow
         image_bytes = response.content
+        
+        # Verify integrity
         img = Image.open(BytesIO(image_bytes))
         img.verify() 
         
-        # Convert bytes to base64
-        # We use image_bytes directly as it is already the raw binary data
-        base64_encoded = base64.b64encode(image_bytes).decode('utf-8')
-        
-        # Return formatted string (Data URL) or just the hash
-        # Most LLMs prefer the full Data URL format
-        return f"data:{content_type};base64,{base64_encoded}"
+        # Return raw bytes and content type
+        return image_bytes, content_type
 
     except Exception as e:
         print(f"Error processing image for LLM: {e}")
-        return None
+        return None, None
 
 
 
@@ -410,7 +406,6 @@ def getch_olx_data(all_steps_ads, base_url, context):
         if is_olx_blocked(html):
             list_page.close()
             raise RuntimeError("OLX anti-bot / empty listing page detected")
-        ######
         ads, found_yesterday = parse_listing_page(html, prev_day_str)
         for full_link, ad_data in ads.items():
             # get clean url without params
@@ -443,13 +438,6 @@ def getch_olx_data(all_steps_ads, base_url, context):
                 ad_data["Тип стін"] = details.get("Тип стін")
                 all_steps_ads[full_link] = ad_data
                 detailed_page.close()
-                for image_url in details["image"]:
-                    image_obj = get_image_for_llm(image_url)
-                    time.sleep(random.randint(20, 35))
-                    if isinstance(image_obj, str) and image_obj.startswith("data:image"):
-                        print("Check passed: Valid Data URL format.")
-                    else:
-                        print("Check failed: Not a valid image string.")
                 is_duplicate = get_update_mongo_atlas(full_link, ad_data)
                 if is_duplicate is not None and is_duplicate != full_link:
                     ad_data["!!! Ймовірний дублікат"] = is_duplicate
@@ -488,6 +476,19 @@ if __name__ == "__main__":
     for link, p_type in ai_response.items():
         if link in all_steps_ads:
             all_steps_ads[link]['Тип планування (llm)'] = p_type
+    # check all images by llm
+    for link, v in all_steps_ads.items():
+        if v["Вид об'єкта"] == "Вторинний ринок":
+            images_list = []
+            for photo in v["Фото"]:
+                image_bytes, content_type = get_image_for_llm(photo)
+                if image_bytes and content_type:
+                    image_tuple = (image_bytes, content_type)
+                    images_list.append(image_tuple)
+            res = vision_assistant.check_condition(images_list)
+            v["Кількість фото - "] = len(v["Фото"])
+            v["Житловий стан на фото (llm)"] = res.condition
+            time.sleep(20)
     # show all ads in terminal
     for k, v in all_steps_ads.items():
         print(f"{k}---{v}")

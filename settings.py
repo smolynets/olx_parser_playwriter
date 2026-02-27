@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     google_api_key: str
     image_server_url: str
     image_server_api_token: str
+    groq_api_key: str
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -46,4 +46,5 @@ jobs:
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         image_server_url: ${{ secrets.image_server_url }}
         image_server_api_token: ${{ secrets.image_server_api_token }}
+        GROQ_API_KEY: ${{ secrets.groq_api_key }}
       run: poetry run python main.py
