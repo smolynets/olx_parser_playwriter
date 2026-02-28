@@ -3,7 +3,7 @@ import io
 
 from pydantic import BaseModel, Field
 from typing import Literal
-from pydantic_ai import Agent, BinaryContent, ImageUrl
+from pydantic_ai import Agent, BinaryContent, ImageUrl, UsageLimits
 from pydantic_ai.models.groq import GroqModel
 
 from functools import wraps
@@ -81,6 +81,7 @@ class VisionAssistant:
         agent = Agent(
             model=self.model,
             output_type=ImageAnalysis,
+            model_settings={'temperature': 0},
             system_prompt=(
                 "Ти — провідний експерт з нерухомості у Львові (Україна). "
                 "Тобі буде надано список фото об'єктів. "
@@ -96,5 +97,10 @@ class VisionAssistant:
                 media_type=content_type
             )
             message_parts.append(image_content)
-        result = agent.run_sync(message_parts)
+        result = agent.run_sync(
+                message_parts,
+                usage_limits=UsageLimits(request_limit=3)
+            )
+        attempts_made = result.usage().requests
+        print(f"Image check: total attempts made: {attempts_made}")
         return result.output
