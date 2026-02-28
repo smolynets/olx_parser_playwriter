@@ -1,5 +1,6 @@
 import os
 import io
+from enum import Enum
 
 from pydantic import BaseModel, Field
 from typing import Literal
@@ -17,9 +18,22 @@ TextAssistantModel = "openai/gpt-oss-120b"
 VisionAssistantModel = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 
-Сondition = Literal['поганий', 'середній', 'хороший', 'відмінний']
+class Condition(str, Enum):
+    bad = "bad"
+    average = "average"
+    good = "good"
+    excellent = "excellent"
 
-allowed_conditions = ", ".join(Сondition.__args__)
+
+allowed_conditions = ", ".join([c.value for c in Condition])
+
+
+translate_condition = {
+    Condition.bad: "поганий",
+    Condition.average: "середній",
+    Condition.good: "хороший",
+    Condition.excellent: "відмінний"
+}
 
 
 class Explanation(BaseModel):
@@ -28,7 +42,7 @@ class Explanation(BaseModel):
 
 
 class ImageAnalysis(BaseModel):
-    condition: Сondition = Field(description="Визначений стан житла")
+    condition: Condition = Field(description="Determined residential condition")
 
 
 def scale_images(max_res=1080):
@@ -74,7 +88,7 @@ class VisionAssistant:
         self.model = GroqModel(model_name=VisionAssistantModel)
 
     @scale_images(max_res=1080)
-    def check_condition(self, images_list: list[tuple[bytes, str]]) -> ImageAnalysis:
+    def check_condition(self, images_list: list[tuple[bytes, str]]) -> str:
         """
         Takes raw bytes directly to ensure maximum compatibility and efficiency.
         """
@@ -83,13 +97,13 @@ class VisionAssistant:
             output_type=ImageAnalysis,
             model_settings={'temperature': 0},
             system_prompt=(
-                "Ти — провідний експерт з нерухомості у Львові (Україна). "
-                "Тобі буде надано список фото об'єктів. "
-                "Твоє завдання: для всіх фото визначити тип житловий стан. "
-                f"Використовуй ТІЛЬКИ ці категорії: {allowed_conditions}."
+                "You are a leading real estate expert in Lviv (Ukraine). "
+                "You will be provided with a list of property photos. "
+                "Your task: for all photos, determine the type of residential condition. "
+                f"Use ONLY these categories: {allowed_conditions}."
             )
         )
-        question = "Опиши житловий стан"
+        question = "Describe the residential condition"
         message_parts = [question]
         for image_bytes, content_type in images_list:
             image_content = BinaryContent(
@@ -103,4 +117,4 @@ class VisionAssistant:
             )
         attempts_made = result.usage().requests
         print(f"Image check: total attempts made: {attempts_made}")
-        return result.output
+        return translate_condition[result.output.condition.value]

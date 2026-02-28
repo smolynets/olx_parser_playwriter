@@ -485,9 +485,8 @@ if __name__ == "__main__":
                 if image_bytes and content_type:
                     image_tuple = (image_bytes, content_type)
                     images_list.append(image_tuple)
-            res = vision_assistant.check_condition(images_list)
             v["Кількість фото - "] = len(v["Фото"])
-            v["Житловий стан на фото (llm)"] = res.condition
+            v["Житловий стан на фото (llm)"] = vision_assistant.check_condition(images_list)
             time.sleep(20)
     # show all ads in terminal
     for k, v in all_steps_ads.items():
