@@ -23,6 +23,7 @@ class Condition(str, Enum):
     average = "average"
     good = "good"
     excellent = "excellent"
+    unknown = "unknown"
 
 
 allowed_conditions = ", ".join([c.value for c in Condition])
@@ -32,7 +33,8 @@ translate_condition = {
     Condition.bad: "поганий",
     Condition.average: "середній",
     Condition.good: "хороший",
-    Condition.excellent: "відмінний"
+    Condition.excellent: "відмінний",
+    Condition.unknown: "невизначено"
 }
 
 
@@ -98,9 +100,18 @@ class VisionAssistant:
             model_settings={'temperature': 0},
             system_prompt=(
                 "You are a leading real estate expert in Lviv (Ukraine). "
-                "You will be provided with a list of property photos. "
-                "Your task: for all photos, determine the type of residential condition. "
+                "You will receive a collection of property photos. "
+                
+                "### CRITICAL FILTERING RULE:\n"
+                "1. FOCUS ONLY on the interior space of the apartment (living rooms, kitchen, bathroom, hallway, balconies from the inside).\n"
+                "2. STRICTLY IGNORE and DISREGARD all photos of the building's exterior (facade), street views, yard, staircase, elevators, common corridors, or floor plan drawings.\n"
+                "3. If a photo contains both (e.g., a view from a window), prioritize the visible interior elements to judge the condition.\n"
+                
+                "### ANALYSIS TASK:\n"
+                "Based EXCLUSIVELY on the interior photos found, determine the residential condition. "
                 f"Use ONLY these categories: {allowed_conditions}."
+                "- Use 'unknown' ONLY if the provided photos contain NO interior views, "
+                "or if the image quality is too low to make a reliable assessment."
             )
         )
         question = "Describe the residential condition"
