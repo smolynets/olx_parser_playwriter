@@ -68,6 +68,8 @@ def send_html_email(email_subject, records):
     <ul>
     """
     for k, v in records.items():
+        # rm hash
+        v.pop('Хеш заголовку', None)
         description = v.get("Опис")
         short_desc = f'{" ".join(v.get("Опис").split()[:5])}...' if description else None
         email_html_body += f"<li><strong>Опис - {short_desc}</strong></li>\n"
@@ -485,7 +487,7 @@ if __name__ == "__main__":
                 if image_bytes and content_type:
                     image_tuple = (image_bytes, content_type)
                     images_list.append(image_tuple)
-            v["Кількість фото - "] = len(v["Фото"])
+            v["Кількість фото "] = len(v["Фото"])
             v["Житловий стан на фото (llm)"] = vision_assistant.check_condition(images_list)
             time.sleep(20)
     # show all ads in terminal

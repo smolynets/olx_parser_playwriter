@@ -52,12 +52,13 @@ class PropertyConsultant:
             mapping = {}
             ai_input = {}
             for idx, (link, data) in enumerate(chunk):
-                s_idx = str(idx)
-                mapping[s_idx] = link
-                ai_input[s_idx] = {
-                    "t": data.get("Заголовок"),
-                    "d": data.get("Опис")
-                }
+                if data["Вид об'єкта"] == "Вторинний ринок":
+                    s_idx = str(idx)
+                    mapping[s_idx] = link
+                    ai_input[s_idx] = {
+                        "t": data.get("Заголовок"),
+                        "d": data.get("Опис")
+                    }
             prompt = f"Analyze and return planning_type for these IDs: {ai_input}"
             try:
                 result = agent.run_sync(prompt)
