@@ -469,9 +469,7 @@ def save_to_google_sheets(k, v):
     yesterday = now - timedelta(days=1)
     yesterday_str = yesterday.strftime("%Y-%m-%d")
     adding_final_row = {"Дата додавання": yesterday_str} | final_row
-    if adding_final_row["Вид об'єкта"] == "Вторинний ринок":
-        import pdb;pdb.set_trace()
-    # manager.add_row(adding_final_row)
+    manager.add_row(adding_final_row)
 
 
 if __name__ == "__main__":
@@ -517,8 +515,7 @@ if __name__ == "__main__":
         print(f"{k}---{v}")
     # save to google sheet
     for k, v in all_steps_ads.items():
-        if v["Вид об'єкта"] == "Вторинний ринок":
-            save_to_google_sheets(k, v)
+        save_to_google_sheets(k, v)
     # send ads to email
     send_html_email("Test olx", all_steps_ads)
     # calculate spended time
