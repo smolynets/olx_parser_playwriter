@@ -273,6 +273,8 @@ def parse_detailed(html):
                 json_string = match.group(1)
                 decoded_string = json.loads(f'"{json_string}"')
                 prerendered = json.loads(decoded_string)
+                data["lat"] = prerendered['ad']['ad']['map']['lat']
+                data["lon"] = prerendered['ad']['ad']['map']['lon']
                 ad_data = prerendered.get("ad", {}).get("ad", {})
                 user_data = ad_data.get("user", {})
                 data["author"] = user_data.get("name")
@@ -438,6 +440,8 @@ def getch_olx_data(all_steps_ads, base_url, context):
                 ad_data["Ремонт"] = details.get("Ремонт")
                 ad_data["Меблювання"] = details.get("Меблювання")
                 ad_data["Тип стін"] = details.get("Тип стін")
+                ad_data["Широта"] = details.get("lat")
+                ad_data["Довгота"] = details.get("lon")
                 all_steps_ads[full_link] = ad_data
                 detailed_page.close()
                 is_duplicate = get_update_mongo_atlas(full_link, ad_data)
