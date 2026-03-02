@@ -24,6 +24,7 @@ from settings import settings
 from mongo_atlas import OlxAdsRepository
 from gemini import PropertyConsultant
 from qroq_logic import TextAssistant, VisionAssistant
+from google_sheets import GoogleSheetManager
 
 
 current_date = datetime.now()
@@ -445,15 +446,32 @@ def getch_olx_data(all_steps_ads, base_url, context):
                 all_steps_ads[full_link] = ad_data
                 detailed_page.close()
                 is_duplicate = get_update_mongo_atlas(full_link, ad_data)
+                if details["Вид об'єкта"] == "Вторинний ринок":
+                    break
                 if is_duplicate is not None and is_duplicate != full_link:
                     ad_data["!!! Ймовірний дублікат"] = is_duplicate
         list_page.close()
+        break
         if not ads:
             break
         if not found_yesterday:
             break
         page_num += 1
         time.sleep(random.randint(67, 133))
+
+
+def save_to_google_sheets(k, v):
+    manager = GoogleSheetManager('google_credentials.json', 'olx-parser')
+    first_data = manager.get_first_rows(100)
+    final_row = {"Лінк": k} | v # add link to start of dict
+    # add data of adding
+    now = datetime.now()
+    yesterday = now - timedelta(days=1)
+    yesterday_str = yesterday.strftime("%Y-%m-%d")
+    adding_final_row = {"Дата додавання": yesterday_str} | final_row
+    if adding_final_row["Вид об'єкта"] == "Вторинний ринок":
+        import pdb;pdb.set_trace()
+    # manager.add_row(adding_final_row)
 
 
 if __name__ == "__main__":
@@ -468,8 +486,8 @@ if __name__ == "__main__":
     all_steps_ads = {}
     p, browser, context = create_stealth_context(headless=True)
     try:
-        for step in range(random.randint(2, 3)):
-            time.sleep(random.randint(111, 753))
+        for step in range(random.randint(1, 1)):
+            time.sleep(random.randint(1, 2))
             step += 1
             print(f"Step number {step}")
             getch_olx_data(all_steps_ads, base_url, context)
@@ -497,6 +515,10 @@ if __name__ == "__main__":
     # show all ads in terminal
     for k, v in all_steps_ads.items():
         print(f"{k}---{v}")
+    # save to google sheet
+    for k, v in all_steps_ads.items():
+        if v["Вид об'єкта"] == "Вторинний ринок":
+            save_to_google_sheets(k, v)
     # send ads to email
     send_html_email("Test olx", all_steps_ads)
     # calculate spended time

@@ -27,6 +27,10 @@ jobs:
       with:
         python-version: '3.12'
 
+    - name: Create credentials.json
+      run: |
+        echo "${{ secrets.GCP_CREDENTIALS_FILE }}" | base64 --decode > google_credentials.json
+
     - name: Install Poetry
       run: |
         pip install poetry
