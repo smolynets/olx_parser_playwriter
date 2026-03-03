@@ -336,7 +336,7 @@ def get_image_for_llm(image_url):
     base_url = settings.image_server_url
     api_token = settings.image_server_api_token
     # --- Health Check Loop (Ping) ---
-    max_retries = 4
+    max_retries = 12
     proxy_ready = False
     for attempt in range(1, max_retries + 1):
         try:
@@ -351,7 +351,7 @@ def get_image_for_llm(image_url):
             print(f"Attempt {attempt}: Proxy is starting up or unreachable...")
         # If not the last attempt, wait before trying again
         if attempt < max_retries:
-            time.sleep(60)
+            time.sleep(30)
 
     if not proxy_ready:
         print(f"Error: Proxy unavailable after {max_retries} attempts.")
