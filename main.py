@@ -491,9 +491,9 @@ def save_to_google_sheets(all_steps_ads):
         new_row["Тип планування (llm)"] = v.get("Тип планування (llm)")
         new_row["Кількість фото"] = len(v["Фото"])
         new_row["Житловий стан на фото (llm)"] = v.get("Житловий стан на фото (llm)")
-        new_row["Додатково"] = v.get("Додатково")
-        if v.get("!!! Ймовірний дублікат"):
-            new_row["Додатково"]["Ймовірний дублікат"] = v["!!! Ймовірний дублікат"]
+        new_row["Додатково"] = {}
+        duplicate_status = v.get("!!! Ймовірний дублікат", "Ні")
+        new_row["Додатково"]["Ймовірний дублікат"] = duplicate_status
         # add to sheets
         google_sheets_manager.add_row(new_row)
         # wait to avoid limits
