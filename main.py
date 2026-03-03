@@ -42,6 +42,8 @@ ai_bot = PropertyConsultant()
 
 vision_assistant = VisionAssistant()
 
+google_sheets_manager = GoogleSheetManager('google_credentials.json', 'olx-parser')
+
 
 # helpers
 
@@ -457,16 +459,45 @@ def getch_olx_data(all_steps_ads, base_url, context):
         time.sleep(random.randint(67, 133))
 
 
-def save_to_google_sheets(k, v):
-    manager = GoogleSheetManager('google_credentials.json', 'olx-parser')
-    first_data = manager.get_first_rows(100)
-    final_row = {"Лінк": k} | v # add link to start of dict
-    # add data of adding
-    now = datetime.now()
-    yesterday = now - timedelta(days=1)
-    yesterday_str = yesterday.strftime("%Y-%m-%d")
-    adding_final_row = {"Дата додавання": yesterday_str} | final_row
-    manager.add_row(adding_final_row)
+def save_to_google_sheets(all_steps_ads):
+    first_data = google_sheets_manager.get_first_rows(100)
+    for k, v in all_steps_ads.items():
+        now = datetime.now()
+        yesterday = now - timedelta(days=1)
+        yesterday_str = yesterday.strftime("%Y-%m-%d")
+        new_row = {}
+        # prepare new row
+        new_row["Дата додавання"] = yesterday_str
+        new_row["Лінк"] = k
+        new_row["Заголовок"] = v.get("Заголовок")
+        new_row["Ціна"] = v.get("Ціна")
+        new_row["Площа"] = v.get("Площа")
+        new_row["Вартість одного квадрату"] = v.get("Вартість одного квадрату")
+        new_row["Опис"] = v.get("Опис")
+        new_row["Хеш заголовку"] = v.get("Хеш заголовку")
+        new_row["Поверх"] = v.get("Поверх")
+        new_row["Поверховість"] = v.get("Поверховість")
+        new_row["Опалення"] = v.get("Опалення")
+        new_row["Клас житла"] = v.get("Клас житла")
+        new_row["Район"] = v.get("Район")
+        new_row["Автор"] = v.get("Автор")
+        new_row["Площа кухні"] = v.get("Площа кухні")
+        new_row["Фото"] = v.get("Фото")
+        new_row["Ремонт"] = v.get("Ремонт")
+        new_row["Меблювання"] = v.get("Меблювання")
+        new_row["Тип стін"] = v.get("Тип стін")
+        new_row["Широта"] = v.get("Широта")
+        new_row["Довгота"] = v.get("Довгота")
+        new_row["Тип планування (llm)"] = v.get("Тип планування (llm)")
+        new_row["Кількість фото"] = len(v["Фото"])
+        new_row["Житловий стан на фото (llm)"] = v.get("Житловий стан на фото (llm)")
+        new_row["Додатково"] = v.get("Додатково")
+        if v.get("!!! Ймовірний дублікат"):
+            new_row["Додатково"]["Ймовірний дублікат"] = v["!!! Ймовірний дублікат"]
+        # add to sheets
+        google_sheets_manager.add_row(new_row)
+        # wait to avoid limits
+        time.sleep(10)
 
 
 if __name__ == "__main__":
@@ -511,8 +542,7 @@ if __name__ == "__main__":
     for k, v in all_steps_ads.items():
         print(f"{k}---{v}")
     # save to google sheet
-    for k, v in all_steps_ads.items():
-        save_to_google_sheets(k, v)
+    save_to_google_sheets(all_steps_ads)
     # send ads to email
     send_html_email("Test olx", all_steps_ads)
     # calculate spended time
