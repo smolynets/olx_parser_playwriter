@@ -489,7 +489,7 @@ def save_to_google_sheets(all_steps_ads):
         new_row["Широта"] = v.get("Широта")
         new_row["Довгота"] = v.get("Довгота")
         new_row["Тип планування (llm)"] = v.get("Тип планування (llm)")
-        new_row["Кількість фото"] = len(v["Фото"])
+        new_row["Кількість фото"] = len(v.get("Фото"))
         new_row["Житловий стан на фото (llm)"] = v.get("Житловий стан на фото (llm)")
         # additional data
         additional_data = {
@@ -537,7 +537,7 @@ if __name__ == "__main__":
                 if image_bytes and content_type:
                     image_tuple = (image_bytes, content_type)
                     images_list.append(image_tuple)
-            v["Кількість фото "] = len(v["Фото"])
+            v["Кількість фото "] = len(v.get("Фото"))
             v["Житловий стан на фото (llm)"] = vision_assistant.check_condition(images_list)
             time.sleep(20)
     # show all ads in terminal
