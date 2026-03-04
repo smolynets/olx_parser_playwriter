@@ -460,46 +460,52 @@ def getch_olx_data(all_steps_ads, base_url, context):
 
 
 def save_to_google_sheets(all_steps_ads):
-    first_data = google_sheets_manager.get_first_rows(100)
+    # get existing links
+    first_data = google_sheets_manager.get_first_rows(200)
+    headers = first_data[0]
+    link_index = headers.index('Лінк')
+    existing_links = {row[link_index] for row in first_data[1:]}
+    # iterate over all ads
     for k, v in all_steps_ads.items():
-        now = datetime.now()
-        yesterday = now - timedelta(days=1)
-        yesterday_str = yesterday.strftime("%Y-%m-%d")
-        new_row = {}
-        # prepare new row
-        new_row["Дата додавання"] = yesterday_str
-        new_row["Лінк"] = k
-        new_row["Заголовок"] = v.get("Заголовок")
-        new_row["Ціна"] = v.get("Ціна")
-        new_row["Площа"] = v.get("Площа")
-        new_row["Вартість одного квадрату"] = v.get("Вартість одного квадрату")
-        new_row["Опис"] = v.get("Опис")
-        new_row["Хеш заголовку"] = v.get("Хеш заголовку")
-        new_row["Поверх"] = v.get("Поверх")
-        new_row["Поверховість"] = v.get("Поверховість")
-        new_row["Опалення"] = v.get("Опалення")
-        new_row["Клас житла"] = v.get("Клас житла")
-        new_row["Район"] = v.get("Район")
-        new_row["Автор"] = v.get("Автор")
-        new_row["Площа кухні"] = v.get("Площа кухні")
-        new_row["Фото"] = v.get("Фото")
-        new_row["Ремонт"] = v.get("Ремонт")
-        new_row["Меблювання"] = v.get("Меблювання")
-        new_row["Тип стін"] = v.get("Тип стін")
-        new_row["Широта"] = v.get("Широта")
-        new_row["Довгота"] = v.get("Довгота")
-        new_row["Тип планування (llm)"] = v.get("Тип планування (llm)")
-        new_row["Кількість фото"] = len(v.get("Фото"))
-        new_row["Житловий стан на фото (llm)"] = v.get("Житловий стан на фото (llm)")
-        # additional data
-        additional_data = {
-            "Ймовірний дублікат": v.get("!!! Ймовірний дублікат", "Ні")
-        }
-        new_row["Додатково"] = json.dumps(additional_data, ensure_ascii=False)
-        # add to sheets
-        google_sheets_manager.add_row(new_row)
-        # wait to avoid limits
-        time.sleep(10)
+        if k not in existing_links:
+            now = datetime.now()
+            yesterday = now - timedelta(days=1)
+            yesterday_str = yesterday.strftime("%Y-%m-%d")
+            new_row = {}
+            # prepare new row
+            new_row["Дата додавання"] = yesterday_str
+            new_row["Лінк"] = k
+            new_row["Заголовок"] = v.get("Заголовок")
+            new_row["Ціна"] = v.get("Ціна")
+            new_row["Площа"] = v.get("Площа")
+            new_row["Вартість одного квадрату"] = v.get("Вартість одного квадрату")
+            new_row["Опис"] = v.get("Опис")
+            new_row["Хеш заголовку"] = v.get("Хеш заголовку")
+            new_row["Поверх"] = v.get("Поверх")
+            new_row["Поверховість"] = v.get("Поверховість")
+            new_row["Опалення"] = v.get("Опалення", "невідомо")
+            new_row["Клас житла"] = v.get("Клас житла")
+            new_row["Район"] = v.get("Район")
+            new_row["Автор"] = v.get("Автор")
+            new_row["Площа кухні"] = v.get("Площа кухні")
+            new_row["Фото"] = v.get("Фото")
+            new_row["Ремонт"] = v.get("Ремонт")
+            new_row["Меблювання"] = v.get("Меблювання")
+            new_row["Тип стін"] = v.get("Тип стін", "невідомо")
+            new_row["Широта"] = v.get("Широта")
+            new_row["Довгота"] = v.get("Довгота")
+            new_row["Тип планування (llm)"] = v.get("Тип планування (llm)", "невідомо")
+            new_row["Кількість фото"] = len(v.get("Фото"), "0")
+            new_row["Житловий стан на фото (llm)"] = v.get("Житловий стан на фото (llm)", "невідомо")
+            # additional data
+            additional_data = {
+                "Ймовірний дублікат": v.get("!!! Ймовірний дублікат", "Ні")
+            }
+            new_row["Додатково"] = json.dumps(additional_data, ensure_ascii=False)
+            # add to sheets
+            google_sheets_manager.add_row(new_row)
+            # wait to avoid limits
+            time.sleep(10)
 
 
 if __name__ == "__main__":
