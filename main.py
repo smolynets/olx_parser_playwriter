@@ -477,6 +477,7 @@ def save_to_google_sheets(all_steps_ads):
             new_row["Лінк"] = k
             new_row["Заголовок"] = v.get("Заголовок")
             new_row["Ціна"] = v.get("Ціна")
+            new_row["Вид об'єкта"] = v.get("Вид об'єкта")
             new_row["Площа"] = v.get("Площа")
             new_row["Вартість одного квадрату"] = v.get("Вартість одного квадрату")
             new_row["Опис"] = v.get("Опис")
