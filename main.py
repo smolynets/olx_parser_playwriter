@@ -496,7 +496,7 @@ def save_to_google_sheets(all_steps_ads):
             new_row["Широта"] = v.get("Широта")
             new_row["Довгота"] = v.get("Довгота")
             new_row["Тип планування (llm)"] = v.get("Тип планування (llm)", "невідомо")
-            new_row["Кількість фото"] = len(v.get("Фото"), "0")
+            new_row["Кількість фото"] = len(v.get("Фото")) if v.get("Фото") else "0"
             new_row["Житловий стан на фото (llm)"] = v.get("Житловий стан на фото (llm)", "невідомо")
             # additional data
             additional_data = {
