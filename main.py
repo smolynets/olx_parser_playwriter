@@ -385,6 +385,9 @@ def getch_olx_data(all_steps_ads, base_url, context):
     prev_day_str = get_prev_day_str()
     page_num = 1
     while True:
+        print("388###################")
+        print(page_num)
+        print("390###################")
         # create page obj for main page
         list_page = context.new_page()
         stealth_sync(list_page)
@@ -515,8 +518,8 @@ if __name__ == "__main__":
     all_steps_ads = {}
     p, browser, context = create_stealth_context(headless=True)
     try:
-        for step in range(random.randint(2, 3)):
-            time.sleep(random.randint(111, 753))
+        for step in range(2):
+            time.sleep(random.randint(111, 253))
             step += 1
             print(f"Step number {step}")
             getch_olx_data(all_steps_ads, base_url, context)
