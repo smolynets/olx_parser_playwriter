@@ -514,12 +514,13 @@ if __name__ == "__main__":
         "?currency=USD"
         "&search[filter_enum_number_of_rooms_string][0]=odnokomnatnye"
         "&search[filter_enum_number_of_rooms_string][1]=dvuhkomnatnye"
+        "&search%5Border%5D=created_at%3Adesc"
     )
     all_steps_ads = {}
     p, browser, context = create_stealth_context(headless=True)
     try:
         for step in range(2):
-            time.sleep(random.randint(111, 253))
+            time.sleep(random.randint(111, 453))
             step += 1
             print(f"Step number {step}")
             getch_olx_data(all_steps_ads, base_url, context)
