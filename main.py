@@ -509,8 +509,8 @@ if __name__ == "__main__":
         "https://www.olx.ua/uk/nedvizhimost/kvartiry/"
         "prodazha-kvartir/lvov/"
         "?currency=USD"
-        "&search%5Bfilter_float_price%3Ato%5D=50000"
-        "&search%5Border%5D=created_at%3Adesc"
+        "&search[filter_enum_number_of_rooms_string][0]=odnokomnatnye"
+        "&search[filter_enum_number_of_rooms_string][1]=dvuhkomnatnye"
     )
     all_steps_ads = {}
     p, browser, context = create_stealth_context(headless=True)
