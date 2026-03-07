@@ -142,23 +142,23 @@ def extract_title(card):
     return None
 
 
-def extract_location_and_date(card):
-    for p in card.find_all("p"):
-        span = p.find("span")
-        if not span:
-            continue
-        date_text = span.get_text(strip=True)
-        if "р." not in date_text:
-            continue
-        from bs4 import NavigableString
-        location_parts = [
-            t.strip()
-            for t in p.contents
-            if isinstance(t, NavigableString) and t.strip()
-        ]
-        location_text = location_parts[0] if location_parts else None
-        return location_text, date_text
-    return None, None
+# def extract_location_and_date(card):
+#     for p in card.find_all("p"):
+#         span = p.find("span")
+#         if not span:
+#             continue
+#         date_text = span.get_text(strip=True)
+#         if "р." not in date_text:
+#             continue
+#         from bs4 import NavigableString
+#         location_parts = [
+#             t.strip()
+#             for t in p.contents
+#             if isinstance(t, NavigableString) and t.strip()
+#         ]
+#         location_text = location_parts[0] if location_parts else None
+#         return location_text, date_text
+#     return None, None
 
 
 def get_price(card):
@@ -218,11 +218,18 @@ def create_stealth_context(headless=True):
 
 # Parsers
 def parse_listing_page(html, prev_day_str):
+    target_district = "шевченківський"
     soup = BeautifulSoup(html, "html.parser")
     cards = soup.find_all("div", {"data-cy": "l-card"})
     ads = {}
     found_yesterday = False
     for card in cards:
+        # Get all text from paragraph tags for date and location checks
+        card_paragraphs = [p.get_text(strip=True).lower() for p in card.find_all("p")]
+        combined_text = " ".join(card_paragraphs)
+        # Filter: District check
+        if target_district not in combined_text:
+            continue
         if not any(
             prev_day_str.lower() in p.get_text(strip=True).lower()
             for p in card.find_all("p")
@@ -238,8 +245,8 @@ def parse_listing_page(html, prev_day_str):
             continue
         found_yesterday = True
         price = get_price(card)
-        if not price or price < 20000:
-            continue
+        # if not price or price < 20000:
+        #     continue
         title = extract_title(card)
         link = card.find("a", href=True)
         full_link = f"https://www.olx.ua{link['href']}" if link else None

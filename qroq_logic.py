@@ -122,10 +122,24 @@ class VisionAssistant:
                 media_type=content_type
             )
             message_parts.append(image_content)
-        result = agent.run_sync(
-                message_parts,
-                usage_limits=UsageLimits(request_limit=3)
-            )
+        # We wrap the sync run in a retry loop to handle Groq's TPD limits
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                result = agent.run_sync(
+                    message_parts,
+                    usage_limits=UsageLimits(request_limit=1)
+                )
+                break
+            except ModelHTTPError as e:
+                if e.status_code == 429 and attempt < max_retries - 1:
+                    print(f"Rate limit hit. Waiting 140s before retry {attempt + 1}/{max_retries}...")
+                    time.sleep(140)
+                    continue
+                # If it's another error or we ran out of retries, raise it
+                raise e
+        else:
+            return "unknown"
         attempts_made = result.usage().requests
         print(f"Image check: total attempts made: {attempts_made}")
         return translate_condition[result.output.condition.value]
