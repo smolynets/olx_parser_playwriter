@@ -31,6 +31,8 @@ current_date = datetime.now()
 current_hour = current_date.strftime("%H")
 week_day = datetime.now().weekday()
 
+ALLOWED_DISTRICTS = ["шевченкіський"]
+
 
 mail_subject = "Test HTML Email"
 smtp_server = 'smtp.gmail.com'
@@ -142,25 +144,6 @@ def extract_title(card):
     return None
 
 
-# def extract_location_and_date(card):
-#     for p in card.find_all("p"):
-#         span = p.find("span")
-#         if not span:
-#             continue
-#         date_text = span.get_text(strip=True)
-#         if "р." not in date_text:
-#             continue
-#         from bs4 import NavigableString
-#         location_parts = [
-#             t.strip()
-#             for t in p.contents
-#             if isinstance(t, NavigableString) and t.strip()
-#         ]
-#         location_text = location_parts[0] if location_parts else None
-#         return location_text, date_text
-#     return None, None
-
-
 def get_price(card):
     price_tag = card.select_one('[data-testid="ad-price"]')
     if not price_tag:
@@ -216,19 +199,22 @@ def create_stealth_context(headless=True):
     return p, browser, context
 
 
+def get_district(cart):
+    location_element = soup.find('p', {'data-testid': 'location-date'})
+    full_text = location_element.get_text()
+    district = full_text.split(',')[1].split('-')[0].strip()
+    return district.lower()
+
+
 # Parsers
 def parse_listing_page(html, prev_day_str):
-    target_district = "шевченківський"
     soup = BeautifulSoup(html, "html.parser")
     cards = soup.find_all("div", {"data-cy": "l-card"})
     ads = {}
     found_yesterday = False
     for card in cards:
-        # Get all text from paragraph tags for date and location checks
-        card_paragraphs = [p.get_text(strip=True).lower() for p in card.find_all("p")]
-        combined_text = " ".join(card_paragraphs)
-        # Filter: District check
-        if target_district not in combined_text:
+        district = get_district(card)
+        if district not in ALLOWED_DISTRICTS:
             continue
         if not any(
             prev_day_str.lower() in p.get_text(strip=True).lower()
