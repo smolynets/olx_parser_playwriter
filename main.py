@@ -508,7 +508,7 @@ if __name__ == "__main__":
         "&search[filter_enum_number_of_rooms_string][0]=odnokomnatnye"
         "&search[filter_enum_number_of_rooms_string][1]=dvuhkomnatnye"
         "&search%5Border%5D=created_at%3Adesc"
-        "&search[filter_enum_apartments_object_type][0]=secondary_market"
+        # "&search[filter_enum_apartments_object_type][0]=secondary_market"
     )
     all_steps_ads = {}
     p, browser, context = create_stealth_context(headless=True)
