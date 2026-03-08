@@ -31,7 +31,7 @@ current_date = datetime.now()
 current_hour = current_date.strftime("%H")
 week_day = datetime.now().weekday()
 
-ALLOWED_DISTRICTS = ["шевченкіський"]
+ALLOWED_DISTRICTS = ["шевченківський"]
 
 
 mail_subject = "Test HTML Email"
