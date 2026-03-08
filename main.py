@@ -488,11 +488,11 @@ def save_to_google_sheets(all_steps_ads):
             new_row["Тип планування (llm)"] = v.get("Тип планування (llm)", "невідомо")
             new_row["Кількість фото"] = len(v.get("Фото")) if v.get("Фото") else "0"
             new_row["Житловий стан на фото (llm)"] = v.get("Житловий стан на фото (llm)", "невідомо")
-            # additional data
-            additional_data = {
-                "Ймовірний дублікат": v.get("!!! Ймовірний дублікат", "Ні")
-            }
-            new_row["Додатково"] = json.dumps(additional_data, ensure_ascii=False)
+            # # additional data
+            # additional_data = {
+            #     "Ймовірний дублікат": v.get("!!! Ймовірний дублікат", "Ні")
+            # }
+            # new_row["Додатково"] = json.dumps(additional_data, ensure_ascii=False)
             # add to sheets
             google_sheets_manager.add_row(new_row)
             # wait to avoid limits
@@ -514,7 +514,7 @@ if __name__ == "__main__":
     p, browser, context = create_stealth_context(headless=True)
     try:
         for step in range(2):
-            time.sleep(random.randint(111, 453))
+            time.sleep(random.randint(60, 115))
             step += 1
             print(f"Step number {step}")
             getch_olx_data(all_steps_ads, base_url, context)
