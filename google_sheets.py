@@ -43,14 +43,39 @@ class GoogleSheetManager:
             print("Headers added to the sheet.")
 
     def add_row(self, data_dict):
+        headers = [
+            "Дата додавання", 
+            "Лінк", 
+            "Заголовок", 
+            "Ціна", 
+            "Вид об'єкта", 
+            "Площа", 
+            "Вартість одного квадрату", 
+            "Опис", 
+            "Хеш заголовку", 
+            "Поверх", 
+            "Поверховість", 
+            "Опалення", 
+            "Клас житла", 
+            "Район", 
+            "Автор", 
+            "Площа кухні", 
+            "Фото", 
+            "Ремонт", 
+            "Меблювання", 
+            "Тип стін", 
+            "Тип планування (llm)", 
+            "Кількість фото", 
+            "Житловий стан на фото (llm)"
+        ]
         row_to_insert = []
-        for value in data_dict.values():
+        for key in headers:
+            value = data_dict.get(key, "") 
             if isinstance(value, list):
-                row_to_insert.append(", ".join(value)) # Convert list to comma-separated string
+                row_to_insert.append(", ".join(value))
             else:
-                row_to_insert.append(value)
-        # 3. Append the actual data
-        self.sheet.append_row(row_to_insert)
+                row_to_insert.append(str(value) if value is not None else "")
+        self.sheet.append_row(row_to_insert, value_input_option='RAW')
         print("Data row added successfully.")
 
     def overwrite_row_range(self, range_name, values_list):
