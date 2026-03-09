@@ -70,8 +70,10 @@ class GoogleSheetManager:
         ]
         row_to_insert = []
         for key in headers:
-            value = data_dict.get(key, "") 
-            if isinstance(value, list):
+            value = data_dict.get(key, "")
+            if value is None or value == "" or (isinstance(value, list) and not value):
+                row_to_insert.append("no data")
+            elif isinstance(value, list):
                 row_to_insert.append(", ".join(value))
             else:
                 row_to_insert.append(str(value) if value is not None else "")
