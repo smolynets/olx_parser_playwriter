@@ -214,8 +214,8 @@ def parse_listing_page(html, prev_day_str):
     found_yesterday = False
     for card in cards:
         district = get_district(card)
-        if district not in ALLOWED_DISTRICTS:
-            continue
+        # if district not in ALLOWED_DISTRICTS:
+        #     continue
         if not any(
             prev_day_str.lower() in p.get_text(strip=True).lower()
             for p in card.find_all("p")
@@ -227,8 +227,8 @@ def parse_listing_page(html, prev_day_str):
         ):
             continue
         # miss "ТОП"
-        if card.find("div", string=lambda t: t and t.strip().lower() == "топ"):
-            continue
+        # if card.find("div", string=lambda t: t and t.strip().lower() == "топ"):
+        #     continue
         found_yesterday = True
         price = get_price(card)
         # if not price or price < 20000:
@@ -509,6 +509,7 @@ if __name__ == "__main__":
         "&search[filter_enum_number_of_rooms_string][1]=dvuhkomnatnye"
         "&search%5Border%5D=created_at%3Adesc"
         # "&search[filter_enum_apartments_object_type][0]=secondary_market"
+        "&search[filter_enum_eoselia][0]=1"
     )
     all_steps_ads = {}
     p, browser, context = create_stealth_context(headless=True)
