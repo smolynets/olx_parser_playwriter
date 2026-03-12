@@ -131,7 +131,7 @@ class VisionAssistant:
                     usage_limits=UsageLimits(request_limit=1)
                 )
                 break
-            except ModelHTTPError as e:
+            except Exception as e:
                 if e.status_code == 429 and attempt < max_retries - 1:
                     print(f"Rate limit hit. Waiting 140s before retry {attempt + 1}/{max_retries}...")
                     time.sleep(140)
