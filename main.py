@@ -539,7 +539,10 @@ if __name__ == "__main__":
                     image_tuple = (image_bytes, content_type)
                     images_list.append(image_tuple)
             v["Кількість фото "] = len(v.get("Фото"))
-            v["Житловий стан на фото (llm)"] = vision_assistant.check_condition(images_list)
+            # TODO: Implement batch processing logic to handle more than 3 images
+            # Current limit: 3 images per request due to model restriction
+            images_to_process = images_list[:3]
+            v["Житловий стан на фото (llm)"] = vision_assistant.check_condition(images_to_process)
             time.sleep(20)
     # show all ads in terminal
     for k, v in all_steps_ads.items():

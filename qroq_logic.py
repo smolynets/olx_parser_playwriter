@@ -15,7 +15,7 @@ from settings import settings
 os.environ['GROQ_API_KEY'] = settings.groq_api_key
 
 TextAssistantModel = "openai/gpt-oss-120b"
-VisionAssistantModel = "meta-llama/llama-4-scout-17b-16e-instruct"
+VisionAssistantModel = "qwen/qwen3.6-27b"
 
 
 class Condition(str, Enum):
