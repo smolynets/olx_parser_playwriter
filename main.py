@@ -542,7 +542,12 @@ if __name__ == "__main__":
             # TODO: Implement batch processing logic to handle more than 3 images
             # Current limit: 3 images per request due to model restriction
             images_to_process = images_list[:3]
-            v["Житловий стан на фото (llm)"] = vision_assistant.check_condition(images_to_process)
+            try:
+                v["Житловий стан на фото (llm)"] = vision_assistant.check_condition(images_to_process)
+            except Exception as e:
+                time.sleep(60)
+                #TODO: Implement retry logic with exponential backoff for better error handling
+                v["Житловий стан на фото (llm)"] = vision_assistant.check_condition(images_to_process)
             time.sleep(20)
     # show all ads in terminal
     for k, v in all_steps_ads.items():
