@@ -1,3 +1,4 @@
+import argparse
 import base64
 import os
 import json
@@ -21,7 +22,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 from settings import settings
-from mongo_atlas import OlxAdsRepository
+# from mongo_atlas import OlxAdsRepository  # commented out for local testing
 from gemini import PropertyConsultant
 from qroq_logic import TextAssistant, VisionAssistant
 from google_sheets import GoogleSheetManager
@@ -38,7 +39,7 @@ mail_subject = "Test HTML Email"
 smtp_server = 'smtp.gmail.com'
 smtp_port = 587
 
-mongo_repo = OlxAdsRepository(mongo_uri=settings.mongo_url)
+# mongo_repo = OlxAdsRepository(mongo_uri=settings.mongo_url)  # commented out for local testing
 
 ai_bot = PropertyConsultant()
 
@@ -107,22 +108,8 @@ def send_html_email(email_subject, records):
 
 
 def get_update_mongo_atlas(link: str, value: dict):
-    ads_hash = value["Хеш заголовку"]
-    ads = mongo_repo.get_ad_by_hash(ads_hash)
-    if not ads:
-        doc = {
-            "ads_hash": ads_hash,
-            "ads_link": link,
-            "title": value["Заголовок"],
-            "created_at": datetime.now(timezone.utc)
-        }
-        mongo_repo.upsert_ad(doc)
-        print(f"Added - {doc}")
-    else:
-        print(f"{ads_hash} exists")
-        if ads["created_at"].date() != current_date.date():
-            print(f"{ads_hash} today added")
-            return ads["ads_link"]
+    # stub for local testing without MongoDB
+    return None
 
 
 def get_prev_day_str():
@@ -172,17 +159,21 @@ def get_text_hash(text: str) -> str:
 
 
 # Playwright factory
-def create_stealth_context(headless=True):
+def create_stealth_context(headless=True, use_system_chromium=False):
     ua = UserAgent()
     p = sync_playwright().start()
-    browser = p.chromium.launch(
-        headless=headless,
-        args=[
+    launch_kwargs = {
+        "headless": headless,
+        "args": [
             "--disable-blink-features=AutomationControlled",
             "--no-sandbox",
             "--disable-dev-shm-usage",
         ]
-    )
+    }
+    # System Chromium only for local testing on Ubuntu 26.04 (flag --first-page-only)
+    if use_system_chromium:
+        launch_kwargs["executable_path"] = "/usr/bin/chromium-browser"
+    browser = p.chromium.launch(**launch_kwargs)
     context = browser.new_context(
         user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         locale="uk-UA",
@@ -374,7 +365,7 @@ def get_image_for_llm(image_url):
 
 
 
-def getch_olx_data(all_steps_ads, base_url, context):
+def getch_olx_data(all_steps_ads, base_url, context, first_page_only=False):
     prev_day_str = get_prev_day_str()
     page_num = 1
     while True:
@@ -444,6 +435,12 @@ def getch_olx_data(all_steps_ads, base_url, context):
                 if is_duplicate is not None and is_duplicate != full_link:
                     ad_data["!!! Ймовірний дублікат"] = is_duplicate
         list_page.close()
+
+        # Тестовий режим: обробляємо тільки першу сторінку списку
+        if first_page_only:
+            print("🧪 Test mode: processing only first page, stopping.")
+            break
+
         if not ads:
             break
         if not found_yesterday:
@@ -501,6 +498,14 @@ def save_to_google_sheets(all_steps_ads):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="OLX parser")
+    parser.add_argument(
+        "--first-page-only",
+        action="store_true",
+        help="For local testing: process only the first page of listings",
+    )
+    args = parser.parse_args()
+
     start = time.perf_counter()
     base_url = (
         "https://www.olx.ua/uk/nedvizhimost/kvartiry/"
@@ -513,13 +518,13 @@ if __name__ == "__main__":
         "&search[filter_enum_eoselia][0]=1"
     )
     all_steps_ads = {}
-    p, browser, context = create_stealth_context(headless=True)
+    p, browser, context = create_stealth_context(headless=True, use_system_chromium=args.first_page_only)
     try:
         for step in range(2):
             time.sleep(random.randint(60, 115))
             step += 1
             print(f"Step number {step}")
-            getch_olx_data(all_steps_ads, base_url, context)
+            getch_olx_data(all_steps_ads, base_url, context, first_page_only=args.first_page_only)
     finally:
         browser.close()
         p.stop()
