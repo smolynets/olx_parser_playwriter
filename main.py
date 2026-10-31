@@ -192,8 +192,13 @@ def create_stealth_context(headless=True, use_system_chromium=False):
 
 def get_district(card):
     location_element = card.find('p', {'data-testid': 'location-date'})
+    if not location_element:
+        return None
     full_text = location_element.get_text()
-    district = full_text.split(',')[1].split('-')[0].strip()
+    parts = full_text.split(',')
+    if len(parts) < 2:
+        return None
+    district = parts[1].split('-')[0].strip()
     return district.lower()
 
 
