@@ -518,7 +518,8 @@ if __name__ == "__main__":
         "&search[filter_enum_eoselia][0]=1"
     )
     all_steps_ads = {}
-    p, browser, context = create_stealth_context(headless=True, use_system_chromium=args.first_page_only)
+    use_system_chromium = args.first_page_only or os.environ.get("USE_SYSTEM_CHROMIUM") == "1"
+    p, browser, context = create_stealth_context(headless=True, use_system_chromium=use_system_chromium)
     try:
         for step in range(2):
             time.sleep(random.randint(60, 115))
